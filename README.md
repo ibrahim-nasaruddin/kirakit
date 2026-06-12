@@ -1,4 +1,4 @@
-# kirakit
+# KiraKit
 
 A privacy-first training monitor for strength, conditioning, and hybrid athletes. Log sessions, track training load and readiness over time, and run sports-science calculators — all in a single offline-capable web app, with your data stored only on your own device.
 
