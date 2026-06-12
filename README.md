@@ -45,7 +45,7 @@ Conditioning definitions, energy-system framework, and testing protocols draw on
 
 ## License
 
-**Copyright © 2026 [Your Name]. All rights reserved.**
+**Copyright © 2026 [Ibrahim Bin Nasaruddin]. All rights reserved.**
 
 This source is published for viewing and evaluation only. No permission is granted to use, copy, modify, distribute, or create derivative works from this code, in whole or in part, without the express written consent of the copyright holder.
 
