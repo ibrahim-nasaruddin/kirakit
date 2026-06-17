@@ -4,9 +4,18 @@ A privacy-first training monitor for strength, conditioning, and hybrid athletes
 
 > **Status:** Early prototype, in active validation. Built as a focused tool for athletes and coaches who want load monitoring grounded in sports-science methodology rather than raw rep-counting.
 
+> Throughout this document, **`[New in v0.4]`** marks the most recently added features, so returning users can see what's changed. The full changelog is in the Version history section below.
+
 ## Version history
 
-**v0.3 — current**
+**v0.4 — current**
+- **Two new calculators:** standalone **Estimated 1RM** (Epley & Brzycki, validated for ≤10 reps, with accuracy bands) and **Maximal Aerobic Speed (MAS)** (set-distance or set-time trial input).
+- **MAS training zones** — once MAS is calculated, a collapsible table gives the speed and per-interval running distance for nine %MAS training zones (Continuous through Anaerobic), based on Dan Baker's field-sport conditioning framework. Includes an adjustable interval duration and a km/h · min/km · m/s unit toggle.
+- **EWMA trend line** — an optional, toggleable exponentially-weighted moving average overlay on the load chart (Williams 2017; Murray 2017), smoothing day-to-day noise to show the underlying load direction.
+- **Log tab redesigned as a chooser** — pick Training session, Daily check-in, or Test result first, then only the relevant fields appear, reducing on-screen clutter.
+- Calculator descriptions condensed to single lines; the delete control in recent sessions is now a trash-can icon.
+
+**v0.3**
 - Renamed to **KiraKit**.
 - **Editable sessions** — reopen any logged session to add exercises after the fact, fix sets, or change date/RPE; edits recalculate all downstream metrics.
 - **Exercise library expanded to 147**, with a new **Isolation** movement-pattern family (calf raises, hip abduction/adduction) alongside Squat, Hinge, Lunge, Push, Pull, Core, and Plyo.
@@ -25,13 +34,13 @@ A privacy-first training monitor for strength, conditioning, and hybrid athletes
 
 ## What it does
 
-- **Granular session logging** — strength sessions with a searchable 147-exercise library (filterable by movement-pattern family: Squat, Hinge, Lunge, Push, Pull, Core, Plyo, Isolation), with favourites and recents, sets/reps/load entry, and automatic tonnage. Conditioning sessions are classified by energy system and modality, with built-in ASCA/NSCA-sourced explanations.
+- **Granular session logging** — strength sessions with a searchable 147-exercise library (filterable by movement-pattern family: Squat, Hinge, Lunge, Push, Pull, Core, Plyo, Isolation), with favourites and recents, sets/reps/load entry, and automatic tonnage. Conditioning sessions are classified by energy system and modality, with built-in ASCA/NSCA-sourced explanations. **`[New in v0.4]`** Logging starts with a simple chooser — Training session, Daily check-in, or Test result — so only the relevant fields appear.
 - **Editable sessions** — any logged session can be reopened and edited; edits recalculate all downstream metrics.
 - **Training-load monitoring** — every session reduces to a common internal load (duration × RPE, the session-RPE method), so strength and conditioning are directly comparable. Tracks load trend against your own rolling baseline, plus monotony, strain, and individualised z-scores.
 - **Readiness & wellness** — daily word-anchored check-ins that sharpen the load signals.
 - **Testing** — log and trend field tests (CMJ, sprints, change-of-direction, and more). Named 1RM tests include an automatic estimated-1RM converter (multi-rep sets up to 10 reps, Epley). Includes a lift-progression chart and ASCA testing-protocol references.
-- **Calculators** (dedicated tab) — pace/speed converter (solve for speed, distance, or time), Anaerobic Speed Reserve, and Karvonen heart-rate zones.
-- **Interactive load chart** — view 7 days to 1 year, scroll back through history, with per-point detail.
+- **Calculators** (dedicated tab) — pace/speed converter (solve for speed, distance, or time), Anaerobic Speed Reserve, and Karvonen heart-rate zones. **`[New in v0.4]`** Plus a standalone **Estimated 1RM** calculator and a **Maximal Aerobic Speed (MAS)** calculator with a collapsible %MAS training-zone table (speeds and per-interval distances, with a km/h · min/km · m/s unit toggle).
+- **Interactive load chart** — view 7 days to 1 year, scroll back through history, with per-point detail. **`[New in v0.4]`** An optional **EWMA trend line** can be toggled on to smooth day-to-day noise and show the underlying load direction.
 - **Themes** — light/dark mode and a custom accent colour.
 
 ## Navigation
@@ -59,7 +68,7 @@ It's a single static HTML file. To run locally, open the file in a browser. To h
 
 ## Methodology & sources
 
-Conditioning definitions, the energy-system framework, and testing protocols draw on the ASCA Level 1 framework and peer-reviewed sources, with calculator and estimate formulas referenced to published literature (Foster for session-RPE; Karvonen for heart-rate reserve; Sandford/Buchheit for Anaerobic Speed Reserve; Berthon et al. for MAS; Epley for the 1RM estimate). See the in-app **Guide → References & Methodology** section for detail.
+Conditioning definitions, the energy-system framework, and testing protocols draw on the ASCA Level 1 framework and peer-reviewed sources, with calculator and estimate formulas referenced to published literature (Foster for session-RPE; Karvonen for heart-rate reserve; Sandford/Buchheit for Anaerobic Speed Reserve; Berthon et al. for MAS; Epley and Brzycki for 1RM estimation). **`[New in v0.4]`** The MAS training zones follow Dan Baker's field-sport conditioning framework (*Recent Trends in High-Intensity Aerobic Training for Field Sports*, UKSCA/ASCA), and the EWMA load trend follows the training-load smoothing approach of Williams et al. (2017) and Murray et al. (2017). See the in-app **Guide → References & Methodology** section for detail.
 
 *This app is an informational and monitoring tool. It is not medical advice and makes no diagnostic or injury-prediction claims. Consult a qualified professional for individual guidance.*
 
