@@ -4,15 +4,39 @@ A privacy-first training monitor for strength, conditioning, and hybrid athletes
 
 > **Status:** Early prototype, in active validation. Built as a focused tool for athletes and coaches who want load monitoring grounded in sports-science methodology rather than raw rep-counting.
 
+## Version history
+
+**v0.3 — current**
+- Renamed to **KiraKit**.
+- **Editable sessions** — reopen any logged session to add exercises after the fact, fix sets, or change date/RPE; edits recalculate all downstream metrics.
+- **Exercise library expanded to 147**, with a new **Isolation** movement-pattern family (calf raises, hip abduction/adduction) alongside Squat, Hinge, Lunge, Push, Pull, Core, and Plyo.
+- **Named 1RM tests** (back squat, deadlift, bench) with an automatic **estimated-1RM converter** — enter a multi-rep set (up to 10 reps) and it computes the estimate (Epley) before logging.
+- **Calculators moved to their own tab**; the bottom bar is now four tabs (Today / Log / Tests / Calc).
+- **Menu redesigned as a slide-in drawer** (☰, top-right) with collapsible sections for data, appearance, guide, references, and FAQ.
+
+**v0.2**
+- Interactive load chart with selectable ranges (7 days to 1 year) and scroll-back through history.
+- Pace/speed converter rebuilt to solve for speed, distance, or time.
+- Light/dark themes and custom accent colour.
+- One-time iOS "Add to Home Screen" prompt to protect local data.
+
+**v0.1**
+- Initial build: granular session logging, session-RPE load monitoring, individualised z-scores, wellness check-ins, field testing, and the core sports-science methodology.
+
 ## What it does
 
-- **Granular session logging** — strength sessions with a searchable exercise library (filterable by movement pattern, with favourites and recents), sets/reps/load, and automatic tonnage; conditioning sessions classified by energy system and modality.
-- **Training-load monitoring** — every session reduces to a common internal load (duration × RPE / sessionRPE method), so strength and conditioning are directly comparable. Tracks load trend against your *own* rolling baseline, plus monotony, strain, and individualised z-scores.
+- **Granular session logging** — strength sessions with a searchable 147-exercise library (filterable by movement-pattern family: Squat, Hinge, Lunge, Push, Pull, Core, Plyo, Isolation), with favourites and recents, sets/reps/load entry, and automatic tonnage. Conditioning sessions are classified by energy system and modality, with built-in ASCA/NSCA-sourced explanations.
+- **Editable sessions** — any logged session can be reopened and edited; edits recalculate all downstream metrics.
+- **Training-load monitoring** — every session reduces to a common internal load (duration × RPE, the session-RPE method), so strength and conditioning are directly comparable. Tracks load trend against your own rolling baseline, plus monotony, strain, and individualised z-scores.
 - **Readiness & wellness** — daily word-anchored check-ins that sharpen the load signals.
-- **Testing** — log and trend field tests (CMJ, sprints, change-of-direction, and more), with an estimated-1RM lift-progression chart and protocol references.
-- **Calculators** — pace/speed converter (solve for speed, distance, or time), Anaerobic Speed Reserve, and Karvonen heart-rate zones.
+- **Testing** — log and trend field tests (CMJ, sprints, change-of-direction, and more). Named 1RM tests include an automatic estimated-1RM converter (multi-rep sets up to 10 reps, Epley). Includes a lift-progression chart and ASCA testing-protocol references.
+- **Calculators** (dedicated tab) — pace/speed converter (solve for speed, distance, or time), Anaerobic Speed Reserve, and Karvonen heart-rate zones.
 - **Interactive load chart** — view 7 days to 1 year, scroll back through history, with per-point detail.
 - **Themes** — light/dark mode and a custom accent colour.
+
+## Navigation
+
+Four primary tabs along the bottom — **Today**, **Log**, **Tests**, **Calc** — plus a slide-in menu (☰, top-right) holding your data/backup, appearance settings, the guide, references, the z-score explainer, and FAQ as collapsible sections.
 
 ## Design principles
 
@@ -35,7 +59,7 @@ It's a single static HTML file. To run locally, open the file in a browser. To h
 
 ## Methodology & sources
 
-Conditioning definitions, energy-system framework, and testing protocols draw on the ASCA Level 1 framework and peer-reviewed sources, with calculator formulas referenced to published literature (e.g. Karvonen for heart-rate reserve; Sandford/Buchheit for Anaerobic Speed Reserve). See the in-app **References & Methodology** section for detail.
+Conditioning definitions, the energy-system framework, and testing protocols draw on the ASCA Level 1 framework and peer-reviewed sources, with calculator and estimate formulas referenced to published literature (Foster for session-RPE; Karvonen for heart-rate reserve; Sandford/Buchheit for Anaerobic Speed Reserve; Berthon et al. for MAS; Epley for the 1RM estimate). See the in-app **Guide → References & Methodology** section for detail.
 
 *This app is an informational and monitoring tool. It is not medical advice and makes no diagnostic or injury-prediction claims. Consult a qualified professional for individual guidance.*
 
