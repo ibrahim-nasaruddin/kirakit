@@ -45,6 +45,37 @@ header input{
 }
 header input::placeholder{color:rgba(255,255,255,.5);font-weight:500}
 .savebtn{background:rgba(255,255,255,.16);color:#fff;border-radius:9px;padding:9px 13px;font-size:14px;font-weight:700}
+.hambtn{width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(255,255,255,.14)}
+.hambtn:active{background:rgba(255,255,255,.26)}
+
+/* right-side drawer (More menu) */
+.drawer-backdrop{position:fixed;inset:0;z-index:70;background:rgba(15,32,29,.4);opacity:0;transition:opacity .25s;animation:fadein .25s}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.drawer-content{
+  position:fixed;top:0;right:0;bottom:0;z-index:75;
+  width:min(420px,86vw);max-width:none;margin:0;
+  background:var(--hall);
+  padding:calc(16px + var(--safe-t)) 18px calc(24px + var(--safe-b));
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  box-shadow:-8px 0 30px rgba(0,0,0,.18);
+  transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+}
+/* override the generic section show/hide rules just for the drawer */
+#v-more.drawer-content{display:block}
+#v-more.drawer-content.open{transform:translateX(0)}
+@media (prefers-reduced-motion:reduce){.drawer-content{transition:none}}
+.drawer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.drawer-head b{font-size:18px;font-weight:800}
+.drawer-head button{font-size:28px;color:var(--ink-2);width:36px;height:36px;line-height:1;display:flex;align-items:center;justify-content:center}
+.draw-acc{background:var(--panel);border:1px solid var(--line);border-radius:13px;margin-bottom:10px;overflow:hidden}
+.draw-acc>summary{padding:15px 16px;font-weight:800;font-size:15px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.draw-acc>summary::-webkit-details-marker{display:none}
+.draw-acc>summary::after{content:"⌄";color:var(--ink-2);font-size:18px;font-weight:700;transition:transform .2s}
+.draw-acc[open]>summary::after{transform:rotate(180deg)}
+.draw-acc[open]>summary{border-bottom:1px solid var(--line)}
+.draw-acc-body{padding:14px 16px}
+.draw-acc-body .primary,.draw-acc-body .ghost{margin-top:8px}
+.draw-acc-body .primary:first-child{margin-top:0}
 
 main{max-width:560px;margin:0 auto;padding:16px}
 section{display:none}
@@ -114,6 +145,7 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-
 td{padding:9px 6px;border-bottom:1px solid var(--mist)}
 td.r,th.r{text-align:right}
 .del{color:var(--risk);font-size:13px;font-weight:700;padding:4px 6px}
+.edit{color:var(--pine);font-size:13px;font-weight:700;padding:4px 6px}
 
 /* big mobile forms */
 .field{margin-bottom:14px}
@@ -274,7 +306,9 @@ footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:
     <input id="athName" placeholder="Your name" aria-label="Your name" maxlength="40">
     <span id="sportLine">Solo training log</span>
   </div>
-  <button class="savebtn" id="quickSave">Save file</button>
+  <button class="hambtn" id="menuOpen" aria-label="Menu">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+  </button>
 </header>
 
 <main>
@@ -327,7 +361,11 @@ footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:
   </section>
 
   <section id="v-log">
-    <h2 style="margin-top:0">Log a session</h2>
+    <h2 style="margin-top:0" id="logHeading">Log a session</h2>
+    <div id="editBanner" class="banner" hidden style="background:#e8f3ec;border-color:#bcd9c6;color:#15433a">
+      <span>Editing a previous session.</span>
+      <button id="cancelEdit" style="background:#15433a">Cancel</button>
+    </div>
     <div class="panel">
       <div class="field"><label for="sDate">Date</label><input type="date" id="sDate"></div>
       <div class="field"><label for="sType">Type</label>
@@ -372,8 +410,13 @@ footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:
       <div class="field"><label for="tDate">Date</label><input type="date" id="tDate"></div>
       <div class="field"><label for="tName">Test</label><select id="tName"></select></div>
       <div class="two">
-        <div class="field"><label for="tVal">Result</label><input type="number" inputmode="decimal" step="any" id="tVal"></div>
+        <div class="field"><label for="tVal"><span id="tValLabel">Result</span></label><input type="number" inputmode="decimal" step="any" id="tVal"></div>
         <div class="field"><label for="tUnit">Unit</label><input id="tUnit"></div>
+      </div>
+      <div class="field" id="repsField" hidden>
+        <label for="tReps">Reps performed <span style="text-transform:none;font-weight:600;color:var(--ink-2)">(1 = a true 1RM, max 10)</span></label>
+        <input type="number" inputmode="numeric" min="1" max="10" id="tReps" value="1">
+        <div class="sysguide" id="e1rmHint" style="margin-top:8px" hidden></div>
       </div>
       <button class="primary" id="addTest">Add result</button>
     </div>
@@ -407,90 +450,107 @@ footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:
     </div>
   </section>
 
-  <section id="v-more">
-    <h2 style="margin-top:0">Your data</h2>
-    <div class="panel">
-      <p class="sub">Everything stays on this phone. On iPhone, Safari can clear a web app's storage if it sits unused for weeks — so save your file regularly. It's also how you move to a new phone.</p>
-      <button class="primary" id="btnExport">Save training file</button>
-      <button class="ghost" id="btnImport">Load training file</button>
-      <input type="file" id="fileInput" accept=".json,application/json" hidden>
-      <button class="ghost" id="btnSample">Try sample data</button>
-      <button class="ghost" id="btnClear" style="color:var(--risk);border-color:#e7bdba">Clear everything</button>
-    </div>
-    
-    <h2>App Appearance</h2>
-    <div class="panel">
-      <div class="two" style="align-items: center;">
-        <button class="ghost" id="themeToggle" style="margin-top:0;">Toggle Dark Mode</button>
-        <div class="field" style="margin-bottom:0">
-           <label>Accent Color</label>
-           <input type="color" id="accentPicker" value="#16655a" style="height: 44px; padding: 0;">
-        </div>
-      </div>
-    </div>
-
-    <h2>Add to Home Screen</h2>
-    <div class="panel">
-      <p class="sub" style="margin:0">In Safari, tap the Share button, then "Add to Home Screen." You'll get an app icon that opens full-screen and works offline — log on the go with a tap.</p>
-    </div>
-
-    <h2>Calculators</h2>
+  <section id="v-calc">
+    <h2 style="margin-top:0">Calculators</h2>
     <div class="panel">
       <button type="button" class="toolrow" data-tool="pace"><b>Pace / Speed calculator</b><small>Distance + time → m/s, km/h, pace</small><span>›</span></button>
       <button type="button" class="toolrow" data-tool="asr"><b>Anaerobic Speed Reserve</b><small>MAS, MSS → ASR and %ASR target paces</small><span>›</span></button>
       <button type="button" class="toolrow" data-tool="hrr"><b>Heart-rate zones (Karvonen)</b><small>HRR → target heart-rate zones</small><span>›</span></button>
     </div>
+    <p class="sub">All formulas are referenced to peer-reviewed sources — see References &amp; Methodology under More.</p>
+  </section>
+
+  <section id="v-more" class="drawer-content">
+    <div class="drawer-head">
+      <b>Menu</b>
+      <button type="button" id="menuClose" aria-label="Close">×</button>
+    </div>
+    <details class="draw-acc" open>
+      <summary>Your data</summary>
+      <div class="draw-acc-body">
+        <p class="sub">Everything stays on this phone. On iPhone, Safari can clear a web app's storage if it sits unused for weeks — so save your file regularly. It's also how you move to a new phone.</p>
+        <button class="primary" id="btnExport">Save training file</button>
+        <button class="ghost" id="btnImport">Load training file</button>
+        <input type="file" id="fileInput" accept=".json,application/json" hidden>
+        <button class="ghost" id="btnSample">Try sample data</button>
+        <button class="ghost" id="btnClear" style="color:var(--risk);border-color:#e7bdba">Clear everything</button>
+      </div>
+    </details>
+
+    <details class="draw-acc">
+      <summary>App appearance</summary>
+      <div class="draw-acc-body">
+        <div class="two" style="align-items: center;">
+          <button class="ghost" id="themeToggle" style="margin-top:0;">Toggle Dark Mode</button>
+          <div class="field" style="margin-bottom:0">
+             <label>Accent Color</label>
+             <input type="color" id="accentPicker" value="#16655a" style="height: 44px; padding: 0;">
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="draw-acc">
+      <summary>Add to Home Screen</summary>
+      <div class="draw-acc-body">
+        <p class="sub" style="margin:0">In Safari, tap the Share button, then "Add to Home Screen." You'll get an app icon that opens full-screen and works offline — log on the go with a tap.</p>
+      </div>
+    </details>
 
     <h2>Recent sessions</h2>
     <div class="panel"><div style="overflow-x:auto"><table id="recentTable"></table></div></div>
 
-    <h2>Guide</h2>
-    <ol class="guide-steps" style="margin-bottom:14px">
-      <li><b>Set your name and baseline.</b> Type your name up top; set a CMJ baseline in Tests if you have one.</li>
-      <li><b>Log every session.</b> Type, minutes and RPE (asked ~30 min after). Load = minutes × RPE.</li>
-      <li><b>Check in daily.</b> Five quick 1–5 scores. They sharpen every other signal.</li>
-      <li><b>Test now and then.</b> Re-test the same items to build trends.</li>
-      <li><b>Save your file weekly.</b> It's your backup and your way to a new phone.</li>
-    </ol>
-    
-    <h2>References & Methodology</h2>
-    <div class="panel">
-      <ul style="padding-left: 20px; line-height: 1.6; font-size: 14px; margin: 0;">
-        <li style="margin-bottom: 8px;"><b>Foster's sRPE:</b> Load is calculated using Foster's session-RPE (Duration × 1-10 RPE) as a validated measure of internal training load.</li>
-        <li style="margin-bottom: 8px;"><b>Energy Systems:</b> Framework mapped to ASCA Level 1 (Module 5) and NSCA guidelines (Phosphagen, Glycolytic, Aerobic).</li>
-        <li style="margin-bottom: 8px;"><b>Anaerobic Speed Reserve (ASR):</b> Based on Sandford, Laursen & Buchheit (Sports Med 2021) for supra-MAS interval prescription.</li>
-        <li style="margin-bottom: 8px;"><b>Karvonen Formula:</b> HR Zones utilize resting HR to track %VO2 more closely than max HR alone.</li>
-        <li style="margin-bottom: 0;"><b>Maximal Aerobic Speed (MAS):</b> Utilizes the 5-minute time trial protocol (Berthon et al., 1997).</li>
-      </ul>
-    </div>
+    <details class="draw-acc">
+      <summary>Guide</summary>
+      <div class="draw-acc-body">
+        <ol class="guide-steps" style="margin-bottom:14px">
+          <li><b>Set your name and baseline.</b> Type your name up top; set a CMJ baseline in Tests if you have one.</li>
+          <li><b>Log every session.</b> Type, minutes and RPE (asked ~30 min after). Load = minutes × RPE.</li>
+          <li><b>Check in daily.</b> Five quick 1–5 scores. They sharpen every other signal.</li>
+          <li><b>Test now and then.</b> Re-test the same items to build trends.</li>
+          <li><b>Save your file weekly.</b> It's your backup and your way to a new phone.</li>
+        </ol>
 
-    <h2>Reading the z-scores</h2>
-    <div class="panel">
-      <p style="font-size:14px;margin-bottom:10px">A z-score counts how many standard deviations a value sits from <b>your own</b> average. 0 is normal; 1 SD is how much your numbers usually bounce week to week. It measures how out-of-the-ordinary today is — for you, not anyone else.</p>
-      <div class="zcurve" aria-hidden="true">
-        <svg viewBox="0 0 360 150" width="100%" role="img" aria-label="Bell curve with standard deviation bands">
-          <defs><linearGradient id="zg" x1="0" x2="1"><stop offset="0" stop-color="#5b7184"/><stop offset="0.5" stop-color="#1e7a46"/><stop offset="1" stop-color="#b3261e"/></linearGradient></defs>
-          <line x1="180" y1="14" x2="180" y2="120" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="4 4"/>
-          <path d="M24,120 C92,120 116,26 180,26 C244,26 268,120 336,120" fill="none" stroke="url(#zg)" stroke-width="3"/>
-          <g stroke="var(--line)" stroke-width="1"><line x1="128" y1="22" x2="128" y2="120"/><line x1="232" y1="22" x2="232" y2="120"/><line x1="76" y1="22" x2="76" y2="120"/><line x1="284" y1="22" x2="284" y2="120"/></g>
-          <g font-family="sans-serif" font-size="11" fill="var(--ink-2)" text-anchor="middle">
-            <text x="180" y="137" font-weight="700" fill="var(--ink)">0 avg</text>
-            <text x="232" y="137">+1</text><text x="284" y="137">+2</text><text x="128" y="137">−1</text><text x="76" y="137">−2</text>
-            <text x="180" y="92" font-size="10" fill="var(--ink-2)">68% of weeks</text>
-          </g>
-        </svg>
+        <h3 style="font-size:14px;font-weight:800;margin:6px 0 8px">References &amp; Methodology</h3>
+        <ul style="padding-left: 20px; line-height: 1.6; font-size: 14px; margin: 0 0 16px;">
+          <li style="margin-bottom: 8px;"><b>Foster's sRPE:</b> Load is calculated using Foster's session-RPE (Duration × 1-10 RPE) as a validated measure of internal training load.</li>
+          <li style="margin-bottom: 8px;"><b>Energy Systems:</b> Framework mapped to ASCA Level 1 (Module 5) and NSCA guidelines (Phosphagen, Glycolytic, Aerobic).</li>
+          <li style="margin-bottom: 8px;"><b>Anaerobic Speed Reserve (ASR):</b> Based on Sandford, Laursen & Buchheit (Sports Med 2021) for supra-MAS interval prescription.</li>
+          <li style="margin-bottom: 8px;"><b>Karvonen Formula:</b> HR Zones utilize resting HR to track %VO2 more closely than max HR alone.</li>
+          <li style="margin-bottom: 0;"><b>Maximal Aerobic Speed (MAS):</b> Utilizes the 5-minute time trial protocol (Berthon et al., 1997).</li>
+        </ul>
+
+        <h3 style="font-size:14px;font-weight:800;margin:6px 0 8px">Reading the z-scores</h3>
+        <p style="font-size:14px;margin-bottom:10px">A z-score counts how many standard deviations a value sits from <b>your own</b> average. 0 is normal; 1 SD is how much your numbers usually bounce week to week. It measures how out-of-the-ordinary today is — for you, not anyone else.</p>
+        <div class="zcurve" aria-hidden="true">
+          <svg viewBox="0 0 360 150" width="100%" role="img" aria-label="Bell curve with standard deviation bands">
+            <defs><linearGradient id="zg" x1="0" x2="1"><stop offset="0" stop-color="#5b7184"/><stop offset="0.5" stop-color="#1e7a46"/><stop offset="1" stop-color="#b3261e"/></linearGradient></defs>
+            <line x1="180" y1="14" x2="180" y2="120" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="4 4"/>
+            <path d="M24,120 C92,120 116,26 180,26 C244,26 268,120 336,120" fill="none" stroke="url(#zg)" stroke-width="3"/>
+            <g stroke="var(--line)" stroke-width="1"><line x1="128" y1="22" x2="128" y2="120"/><line x1="232" y1="22" x2="232" y2="120"/><line x1="76" y1="22" x2="76" y2="120"/><line x1="284" y1="22" x2="284" y2="120"/></g>
+            <g font-family="sans-serif" font-size="11" fill="var(--ink-2)" text-anchor="middle">
+              <text x="180" y="137" font-weight="700" fill="var(--ink)">0 avg</text>
+              <text x="232" y="137">+1</text><text x="284" y="137">+2</text><text x="128" y="137">−1</text><text x="76" y="137">−2</text>
+              <text x="180" y="92" font-size="10" fill="var(--ink-2)">68% of weeks</text>
+            </g>
+          </svg>
+        </div>
+        <table class="ztable"><tbody>
+          <tr><td>0 to ±1</td><td>~2 in 3 weeks. Normal — nothing to chase.</td></tr>
+          <tr><td>±1 to ±1.5</td><td>Mildly unusual. Worth a glance.</td></tr>
+          <tr><td>±1.5 to ±2</td><td>~1 in 15 weeks. Notably unusual — check how you feel.</td></tr>
+          <tr><td>beyond ±2</td><td>~1 in 20 weeks. Something changed — know what before acting.</td></tr>
+        </tbody></table>
+        <p style="font-size:13px;color:var(--ink-2);margin-top:10px">Sign is direction, not quality. Load z +2 = a much heavier week; RPE z +2 = the same session felt much harder than it usually does for you — often the more telling signal.</p>
       </div>
-      <table class="ztable"><tbody>
-        <tr><td>0 to ±1</td><td>~2 in 3 weeks. Normal — nothing to chase.</td></tr>
-        <tr><td>±1 to ±1.5</td><td>Mildly unusual. Worth a glance.</td></tr>
-        <tr><td>±1.5 to ±2</td><td>~1 in 15 weeks. Notably unusual — check how you feel.</td></tr>
-        <tr><td>beyond ±2</td><td>~1 in 20 weeks. Something changed — know what before acting.</td></tr>
-      </tbody></table>
-      <p style="font-size:13px;color:var(--ink-2);margin-top:10px">Sign is direction, not quality. Load z +2 = a much heavier week; RPE z +2 = the same session felt much harder than it usually does for you — often the more telling signal.</p>
-    </div>
+    </details>
 
-    <h2>FAQ</h2>
-    <div id="faq"></div>
+    <details class="draw-acc">
+      <summary>FAQ</summary>
+      <div class="draw-acc-body">
+        <div id="faq"></div>
+      </div>
+    </details>
   </section>
 </main>
 
@@ -500,8 +560,10 @@ footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:
   <button data-v="today" aria-current="true"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#5a665f" stroke-width="2"><path d="M3 13h4l3 7 4-14 3 7h4"/></svg>Today</button>
   <button data-v="log"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#5a665f" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Log</button>
   <button data-v="tests"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#5a665f" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 4-6"/></svg>Tests</button>
-  <button data-v="more"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#5a665f" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>More</button>
+  <button data-v="calc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#5a665f" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10"/><line x1="12" y1="10" x2="12" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/></svg>Calc</button>
 </nav>
+
+<div class="drawer-backdrop" id="drawerBackdrop" hidden></div>
 
 <div class="toast" id="toast" role="status"></div>
 
@@ -601,15 +663,17 @@ const TESTS=[
   ["CMJ","cm","Power"],["Squat Jump","cm","Power"],["Drop Jump RSI","ratio","Power"],["Broad Jump","cm","Power"],
   ["10m Sprint","s","Speed"],["20m Sprint","s","Speed"],["30m Sprint","s","Speed"],["Flying 10m","s","Speed"],
   ["5-0-5","s","COD"],["Pro-Agility","s","COD"],["T-Test","s","COD"],
-  ["Est 1RM Squat","kg","Strength"],["Est 1RM Bench","kg","Strength"],["Grip L","kg","Strength"],["Grip R","kg","Strength"],
+  ["1RM Barbell Back Squat","kg","Strength"],["1RM Conventional Deadlift","kg","Strength"],["1RM Barbell Bench Press","kg","Strength"],["Grip L","kg","Strength"],["Grip R","kg","Strength"],
   ["30-15 IFT","km/h","Conditioning"],["Yo-Yo IR1","m","Conditioning"],["1.2km Time Trial","s","Conditioning"],["CSS","s/100m","Conditioning"],["HR Recovery 60s","bpm","Conditioning"],
   ["Knee-to-Wall L","cm","ROM"],["Knee-to-Wall R","cm","ROM"],["Sit-and-Reach","cm","ROM"],["Other","","Custom"],
-].map(([name,unit,cat])=>({name,unit,cat,better:(["10m Sprint","20m Sprint","30m Sprint","Flying 10m","5-0-5","Pro-Agility","T-Test","1.2km Time Trial","CSS"].includes(name))?"lower":"higher"}));
-const testDef=n=>TESTS.find(t=>t.name===n)||{name:n,unit:"",better:"higher"};
+].map(([name,unit,cat])=>({name,unit,cat,
+  better:(["10m Sprint","20m Sprint","30m Sprint","Flying 10m","5-0-5","Pro-Agility","T-Test","1.2km Time Trial","CSS"].includes(name))?"lower":"higher",
+  is1rm:["1RM Barbell Back Squat","1RM Conventional Deadlift","1RM Barbell Bench Press"].includes(name)}));
+const testDef=n=>TESTS.find(t=>t.name===n)||{name:n,unit:"",better:"higher",is1rm:false};
 
 /* ============ exercise & conditioning library (Ibrahim's Compendium) ============ */
-const EXLIB=[{"n": "Ab Rollout", "p": "Core (Anti-Extension)", "e": "Ab Wheel", "f": "Core"}, {"n": "Barbell Bench Press", "p": "Push (Horizontal)", "e": "Barbell", "f": "Push"}, {"n": "Barbell Incline Press", "p": "Push (Horizontal)", "e": "Barbell", "f": "Push"}, {"n": "Barbell Decline Press", "p": "Push (Horizontal)", "e": "Barbell", "f": "Push"}, {"n": "Barbell Overhead Press", "p": "Push (Vertical)", "e": "Barbell", "f": "Push"}, {"n": "Barbell Military Press", "p": "Push (Vertical)", "e": "Barbell", "f": "Push"}, {"n": "Barbell Bent-Over Row", "p": "Pull (Horizontal)", "e": "Barbell", "f": "Pull"}, {"n": "Barbell Back Squat", "p": "Squat", "e": "Barbell", "f": "Squat"}, {"n": "Barbell Front Squat", "p": "Squat", "e": "Barbell", "f": "Squat"}, {"n": "Barbell Bulgarian Split Squat", "p": "Squat", "e": "Barbell", "f": "Squat"}, {"n": "Conventional Deadlift", "p": "Hip Hinge", "e": "Barbell", "f": "Hinge"}, {"n": "Barbell Romanian Deadlift", "p": "Hip Hinge", "e": "Barbell", "f": "Hinge"}, {"n": "Sumo Deadlift", "p": "Hip Hinge", "e": "Barbell", "f": "Hinge"}, {"n": "Good Morning", "p": "Hip Hinge", "e": "Barbell", "f": "Hinge"}, {"n": "Barbell Hip Thrust", "p": "Hip Hinge", "e": "Barbell", "f": "Hinge"}, {"n": "Barbell Glute Bridge", "p": "Hip Hinge", "e": "Barbell", "f": "Hinge"}, {"n": "Barbell Forward Lunge", "p": "Lunge", "e": "Barbell", "f": "Lunge"}, {"n": "Barbell Reverse Lunge", "p": "Lunge", "e": "Barbell", "f": "Lunge"}, {"n": "Barbell Walking Lunge", "p": "Lunge", "e": "Barbell", "f": "Lunge"}, {"n": "Barbell Step-Up", "p": "Lunge", "e": "Barbell", "f": "Lunge"}, {"n": "Landmine Twist", "p": "Core (Rotation)", "e": "Barbell", "f": "Core"}, {"n": "Copenhagen Plank", "p": "Core (Anti-Lateral Flexion)", "e": "Bench", "f": "Core"}, {"n": "Sit-to-Squat Jump", "p": "Plyometric (Squat)", "e": "Bench / Box", "f": "Plyo"}, {"n": "Push-Up", "p": "Push (Horizontal)", "e": "Bodyweight", "f": "Push"}, {"n": "Diamond Push-Up", "p": "Push (Horizontal)", "e": "Bodyweight", "f": "Push"}, {"n": "Pike Push-Up", "p": "Push (Vertical)", "e": "Bodyweight", "f": "Push"}, {"n": "Handstand Push-Up", "p": "Push (Vertical)", "e": "Bodyweight", "f": "Push"}, {"n": "Inverted Row (Inclined pull-up)", "p": "Pull (Horizontal)", "e": "Bodyweight", "f": "Pull"}, {"n": "Pull-Up", "p": "Pull (Vertical)", "e": "Bodyweight", "f": "Pull"}, {"n": "Chin-Up", "p": "Pull (Vertical)", "e": "Bodyweight", "f": "Pull"}, {"n": "Bodyweight Squat", "p": "Squat", "e": "Bodyweight", "f": "Squat"}, {"n": "Pistol Squat", "p": "Squat", "e": "Bodyweight", "f": "Squat"}, {"n": "Bodyweight Bulgarian Split Squat", "p": "Squat", "e": "Bodyweight", "f": "Squat"}, {"n": "Bodyweight Hip Thrust", "p": "Hip Hinge", "e": "Bodyweight", "f": "Hinge"}, {"n": "Bodyweight Glute Bridge", "p": "Hip Hinge", "e": "Bodyweight", "f": "Hinge"}, {"n": "Single-Leg Glute Bridge", "p": "Hip Hinge", "e": "Bodyweight", "f": "Hinge"}, {"n": "Bodyweight Single-Leg RDL", "p": "Hip Hinge", "e": "Bodyweight", "f": "Hinge"}, {"n": "Bodyweight Forward Lunge", "p": "Lunge", "e": "Bodyweight", "f": "Lunge"}, {"n": "Bodyweight Reverse Lunge", "p": "Lunge", "e": "Bodyweight", "f": "Lunge"}, {"n": "Bodyweight Walking Lunge", "p": "Lunge", "e": "Bodyweight", "f": "Lunge"}, {"n": "Bodyweight Curtsy Lunge", "p": "Lunge", "e": "Bodyweight", "f": "Lunge"}, {"n": "Bodyweight Lateral Lunge", "p": "Lunge", "e": "Bodyweight", "f": "Lunge"}, {"n": "Bodyweight Step-Up", "p": "Lunge", "e": "Bodyweight", "f": "Lunge"}, {"n": "Crunch", "p": "Core (Flexion)", "e": "Bodyweight", "f": "Core"}, {"n": "V-Up", "p": "Core (Flexion)", "e": "Bodyweight", "f": "Core"}, {"n": "Superman", "p": "Core (Extension)", "e": "Bodyweight", "f": "Core"}, {"n": "Bodyweight Russian Twist", "p": "Core (Rotation)", "e": "Bodyweight", "f": "Core"}, {"n": "Plank", "p": "Core (Anti-Extension)", "e": "Bodyweight", "f": "Core"}, {"n": "Dead Bug", "p": "Core (Anti-Extension)", "e": "Bodyweight", "f": "Core"}, {"n": "Side Plank", "p": "Core (Anti-Lateral Flexion)", "e": "Bodyweight", "f": "Core"}, {"n": "Bird-Dog", "p": "Core (Anti-Rotation)", "e": "Bodyweight", "f": "Core"}, {"n": "Clap Push-Up", "p": "Plyometric (Push)", "e": "Bodyweight", "f": "Push"}, {"n": "Squat Jump", "p": "Plyometric (Squat)", "e": "Bodyweight", "f": "Plyo"}, {"n": "Tuck Jump", "p": "Plyometric (Squat)", "e": "Bodyweight", "f": "Plyo"}, {"n": "Broad Jump", "p": "Plyometric (Hip Hinge)", "e": "Bodyweight", "f": "Hinge"}, {"n": "Lunge Jump", "p": "Plyometric (Lunge)", "e": "Bodyweight", "f": "Lunge"}, {"n": "Single-Leg Broad Jump", "p": "Plyometric (Hip Hinge)", "e": "Bodyweight", "f": "Hinge"}, {"n": "Skater Jump", "p": "Plyometric (Lunge)", "e": "Bodyweight", "f": "Lunge"}, {"n": "Box Jump", "p": "Plyometric (Squat)", "e": "Box", "f": "Plyo"}, {"n": "Depth Jump", "p": "Plyometric (Squat)", "e": "Box", "f": "Plyo"}, {"n": "Single-Leg Box Jump", "p": "Plyometric (Squat)", "e": "Box", "f": "Plyo"}, {"n": "Cable Crossover", "p": "Push (Horizontal)", "e": "Cable Machine", "f": "Push"}, {"n": "Cable Lateral Raise", "p": "Push (Vertical)", "e": "Cable Machine", "f": "Push"}, {"n": "Cable Front Raise", "p": "Push (Vertical)", "e": "Cable Machine", "f": "Push"}, {"n": "Seated Cable Row", "p": "Pull (Horizontal)", "e": "Cable Machine", "f": "Pull"}, {"n": "Lat Pulldown", "p": "Pull (Vertical)", "e": "Cable Machine", "f": "Pull"}, {"n": "Straight-Arm Pulldown", "p": "Pull (Vertical)", "e": "Cable Machine", "f": "Pull"}, {"n": "Single-Arm Lat Pulldown", "p": "Pull (Vertical)", "e": "Cable Machine", "f": "Pull"}, {"n": "Cable Woodchop", "p": "Core (Rotation)", "e": "Cable Machine", "f": "Core"}, {"n": "Cable Pallof Press", "p": "Core (Anti-Rotation)", "e": "Cable Machine", "f": "Core"}, {"n": "Dumbbell Bench Press", "p": "Push (Horizontal)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Incline Press", "p": "Push (Horizontal)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Decline Press", "p": "Push (Horizontal)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Fly", "p": "Push (Horizontal)", "e": "Dumbbell", "f": "Push"}, {"n": "Single-Arm Dumbbell Press", "p": "Push (Horizontal)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Overhead Press", "p": "Push (Vertical)", "e": "Dumbbell", "f": "Push"}, {"n": "Arnold Press", "p": "Push (Vertical)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Lateral Raise", "p": "Push (Vertical)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Front Raise", "p": "Push (Vertical)", "e": "Dumbbell", "f": "Push"}, {"n": "Single-Arm Dumbbell OHP", "p": "Push (Vertical)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Bent-Over Row", "p": "Pull (Horizontal)", "e": "Dumbbell", "f": "Pull"}, {"n": "Dumbbell Chest-Supported Row", "p": "Pull (Horizontal)", "e": "Dumbbell", "f": "Pull"}, {"n": "Single-Arm Dumbbell Row", "p": "Pull (Horizontal)", "e": "Dumbbell", "f": "Pull"}, {"n": "Dumbbell Bulgarian Split Squat", "p": "Squat", "e": "Dumbbell", "f": "Squat"}, {"n": "Dumbbell Romanian Deadlift", "p": "Hip Hinge", "e": "Dumbbell", "f": "Hinge"}, {"n": "Dumbbell Hip Thrust", "p": "Hip Hinge", "e": "Dumbbell", "f": "Hinge"}, {"n": "Dumbbell Glute Bridge", "p": "Hip Hinge", "e": "Dumbbell", "f": "Hinge"}, {"n": "Dumbbell Single-Leg RDL", "p": "Hip Hinge", "e": "Dumbbell", "f": "Hinge"}, {"n": "Dumbbell Forward Lunge", "p": "Lunge", "e": "Dumbbell", "f": "Lunge"}, {"n": "Dumbbell Reverse Lunge", "p": "Lunge", "e": "Dumbbell", "f": "Lunge"}, {"n": "Dumbbell Walking Lunge", "p": "Lunge", "e": "Dumbbell", "f": "Lunge"}, {"n": "Dumbbell Curtsy Lunge", "p": "Lunge", "e": "Dumbbell", "f": "Lunge"}, {"n": "Dumbbell Lateral Lunge", "p": "Lunge", "e": "Dumbbell", "f": "Lunge"}, {"n": "Dumbbell Step-Up", "p": "Lunge", "e": "Dumbbell", "f": "Lunge"}, {"n": "Dumbbell Side Bend", "p": "Core (Lateral Flexion)", "e": "Dumbbell", "f": "Core"}, {"n": "Dumbbell Suitcase Carry", "p": "Core (Anti-Lateral Flexion)", "e": "Dumbbell", "f": "Core"}, {"n": "Renegade Row", "p": "Core (Anti-Rotation)", "e": "Dumbbell", "f": "Core"}, {"n": "Dumbbell Squat Jump", "p": "Plyometric (Squat)", "e": "Dumbbell", "f": "Plyo"}, {"n": "Single-Arm Kettlebell OHP", "p": "Push (Vertical)", "e": "Kettlebell", "f": "Push"}, {"n": "Goblet Squat", "p": "Squat", "e": "Kettlebell", "f": "Squat"}, {"n": "Kettlebell Swing", "p": "Hip Hinge", "e": "Kettlebell", "f": "Hinge"}, {"n": "Kettlebell Single-Leg RDL", "p": "Hip Hinge", "e": "Kettlebell", "f": "Hinge"}, {"n": "Kettlebell Suitcase Carry", "p": "Core (Anti-Lateral Flexion)", "e": "Kettlebell", "f": "Core"}, {"n": "Chest Press Machine", "p": "Push (Horizontal)", "e": "Machine", "f": "Push"}, {"n": "Machine Chest-Supported Row", "p": "Pull (Horizontal)", "e": "Machine", "f": "Pull"}, {"n": "Leg Press", "p": "Squat", "e": "Machine", "f": "Squat"}, {"n": "Hack Squat", "p": "Squat", "e": "Machine", "f": "Squat"}, {"n": "Leg Extension", "p": "Squat", "e": "Machine", "f": "Squat"}, {"n": "Hamstring Curl", "p": "Hip Hinge", "e": "Machine", "f": "Hinge"}, {"n": "Machine Hip Thrust", "p": "Hip Hinge", "e": "Machine", "f": "Hinge"}, {"n": "Back Extension", "p": "Core (Extension)", "e": "Machine", "f": "Core"}, {"n": "Medicine Ball Russian Twist", "p": "Core (Rotation)", "e": "Medicine Ball", "f": "Core"}, {"n": "Medicine Ball Chest Pass", "p": "Plyometric (Push)", "e": "Medicine Ball", "f": "Push"}, {"n": "Medicine Ball Slam", "p": "Plyometric (Pull)", "e": "Medicine Ball", "f": "Pull"}, {"n": "Hanging Leg Raise", "p": "Core (Flexion)", "e": "Pull-up Bar", "f": "Core"}, {"n": "Band Pallof Press", "p": "Core (Anti-Rotation)", "e": "Resistance Band", "f": "Core"}, {"n": "T-Bar Row", "p": "Pull (Horizontal)", "e": "T-Bar Machine", "f": "Pull"}];
-const EXFAMS=["Squat", "Hinge", "Lunge", "Push", "Pull", "Core", "Plyo"];
+const EXLIB=[{"n": "Landmine Twist", "p": "Core (Rotation)", "e": "Barbell", "f": "Core"}, {"n": "Barbell Glute Bridge", "p": "Hip Hinge", "e": "Barbell", "f": "Hinge"}, {"n": "Barbell Hip Thrust", "p": "Hip Hinge", "e": "Barbell", "f": "Hinge"}, {"n": "Barbell Romanian Deadlift", "p": "Hip Hinge", "e": "Barbell", "f": "Hinge"}, {"n": "Conventional Deadlift", "p": "Hip Hinge", "e": "Barbell", "f": "Hinge"}, {"n": "Good Morning", "p": "Hip Hinge", "e": "Barbell", "f": "Hinge"}, {"n": "Sumo Deadlift", "p": "Hip Hinge", "e": "Barbell", "f": "Hinge"}, {"n": "Barbell Forward Lunge", "p": "Lunge", "e": "Barbell", "f": "Lunge"}, {"n": "Barbell Reverse Lunge", "p": "Lunge", "e": "Barbell", "f": "Lunge"}, {"n": "Barbell Step-Up", "p": "Lunge", "e": "Barbell", "f": "Lunge"}, {"n": "Barbell Walking Lunge", "p": "Lunge", "e": "Barbell", "f": "Lunge"}, {"n": "Barbell Bent-Over Row", "p": "Pull (Horizontal)", "e": "Barbell", "f": "Pull"}, {"n": "Barbell Bicep Curl", "p": "Pull (Vertical)", "e": "Barbell", "f": "Pull"}, {"n": "Barbell Shrug", "p": "Pull (Vertical)", "e": "Barbell", "f": "Pull"}, {"n": "Barbell Bench Press", "p": "Push (Horizontal)", "e": "Barbell", "f": "Push"}, {"n": "Barbell Decline Press", "p": "Push (Horizontal)", "e": "Barbell", "f": "Push"}, {"n": "Barbell Incline Press", "p": "Push (Horizontal)", "e": "Barbell", "f": "Push"}, {"n": "Barbell Military Press", "p": "Push (Vertical)", "e": "Barbell", "f": "Push"}, {"n": "Barbell Overhead Press", "p": "Push (Vertical)", "e": "Barbell", "f": "Push"}, {"n": "Skull Crusher", "p": "Push (Horizontal)", "e": "Barbell", "f": "Push"}, {"n": "Barbell Back Squat", "p": "Squat", "e": "Barbell", "f": "Squat"}, {"n": "Barbell Bulgarian Split Squat", "p": "Squat", "e": "Barbell", "f": "Squat"}, {"n": "Barbell Front Squat", "p": "Squat", "e": "Barbell", "f": "Squat"}, {"n": "Bird-Dog", "p": "Core (Anti-Rotation)", "e": "Bodyweight", "f": "Core"}, {"n": "Bodyweight Russian Twist", "p": "Core (Rotation)", "e": "Bodyweight", "f": "Core"}, {"n": "Crunch", "p": "Core (Flexion)", "e": "Bodyweight", "f": "Core"}, {"n": "Dead Bug", "p": "Core (Anti-Extension)", "e": "Bodyweight", "f": "Core"}, {"n": "Flutter Kicks", "p": "Core (Flexion)", "e": "Bodyweight", "f": "Core"}, {"n": "Hollow Body Hold", "p": "Core (Anti-Extension)", "e": "Bodyweight", "f": "Core"}, {"n": "Lying Leg Raise", "p": "Core (Flexion)", "e": "Bodyweight", "f": "Core"}, {"n": "Mountain Climber", "p": "Core (Flexion)", "e": "Bodyweight", "f": "Core"}, {"n": "Plank", "p": "Core (Anti-Extension)", "e": "Bodyweight", "f": "Core"}, {"n": "Reverse Crunch", "p": "Core (Flexion)", "e": "Bodyweight", "f": "Core"}, {"n": "Side Plank", "p": "Core (Anti-Lateral Flexion)", "e": "Bodyweight", "f": "Core"}, {"n": "Superman", "p": "Core (Extension)", "e": "Bodyweight", "f": "Core"}, {"n": "V-Up", "p": "Core (Flexion)", "e": "Bodyweight", "f": "Core"}, {"n": "Bodyweight Glute Bridge", "p": "Hip Hinge", "e": "Bodyweight", "f": "Hinge"}, {"n": "Bodyweight Hip Thrust", "p": "Hip Hinge", "e": "Bodyweight", "f": "Hinge"}, {"n": "Bodyweight Single-Leg RDL", "p": "Hip Hinge", "e": "Bodyweight", "f": "Hinge"}, {"n": "Broad Jump", "p": "Plyometric (Hip Hinge)", "e": "Bodyweight", "f": "Hinge"}, {"n": "Nordic Hamstring Curl", "p": "Hip Hinge", "e": "Bodyweight", "f": "Hinge"}, {"n": "Single-Leg Broad Jump", "p": "Plyometric (Hip Hinge)", "e": "Bodyweight", "f": "Hinge"}, {"n": "Single-Leg Glute Bridge", "p": "Hip Hinge", "e": "Bodyweight", "f": "Hinge"}, {"n": "Bodyweight Curtsy Lunge", "p": "Lunge", "e": "Bodyweight", "f": "Lunge"}, {"n": "Bodyweight Forward Lunge", "p": "Lunge", "e": "Bodyweight", "f": "Lunge"}, {"n": "Bodyweight Lateral Lunge", "p": "Lunge", "e": "Bodyweight", "f": "Lunge"}, {"n": "Bodyweight Reverse Lunge", "p": "Lunge", "e": "Bodyweight", "f": "Lunge"}, {"n": "Bodyweight Step-Up", "p": "Lunge", "e": "Bodyweight", "f": "Lunge"}, {"n": "Bodyweight Walking Lunge", "p": "Lunge", "e": "Bodyweight", "f": "Lunge"}, {"n": "Lunge Jump", "p": "Plyometric (Lunge)", "e": "Bodyweight", "f": "Lunge"}, {"n": "Skater Jump", "p": "Plyometric (Lunge)", "e": "Bodyweight", "f": "Lunge"}, {"n": "Squat Jump", "p": "Plyometric (Squat)", "e": "Bodyweight", "f": "Plyo"}, {"n": "Tuck Jump", "p": "Plyometric (Squat)", "e": "Bodyweight", "f": "Plyo"}, {"n": "Chin-Up", "p": "Pull (Vertical)", "e": "Bodyweight", "f": "Pull"}, {"n": "Inverted Row (Inclined pull-up)", "p": "Pull (Horizontal)", "e": "Bodyweight", "f": "Pull"}, {"n": "Pull-Up", "p": "Pull (Vertical)", "e": "Bodyweight", "f": "Pull"}, {"n": "Bench Dip", "p": "Push (Vertical)", "e": "Bodyweight", "f": "Push"}, {"n": "Clap Push-Up", "p": "Plyometric (Push)", "e": "Bodyweight", "f": "Push"}, {"n": "Diamond Push-Up", "p": "Push (Horizontal)", "e": "Bodyweight", "f": "Push"}, {"n": "Handstand Push-Up", "p": "Push (Vertical)", "e": "Bodyweight", "f": "Push"}, {"n": "Pike Push-Up", "p": "Push (Vertical)", "e": "Bodyweight", "f": "Push"}, {"n": "Push-Up", "p": "Push (Horizontal)", "e": "Bodyweight", "f": "Push"}, {"n": "Tricep Dip", "p": "Push (Vertical)", "e": "Bodyweight", "f": "Push"}, {"n": "Bodyweight Bulgarian Split Squat", "p": "Squat", "e": "Bodyweight", "f": "Squat"}, {"n": "Bodyweight Squat", "p": "Squat", "e": "Bodyweight", "f": "Squat"}, {"n": "Pistol Squat", "p": "Squat", "e": "Bodyweight", "f": "Squat"}, {"n": "Box Jump", "p": "Plyometric (Squat)", "e": "Box", "f": "Plyo"}, {"n": "Depth Jump", "p": "Plyometric (Squat)", "e": "Box", "f": "Plyo"}, {"n": "Single-Leg Box Jump", "p": "Plyometric (Squat)", "e": "Box", "f": "Plyo"}, {"n": "Sit-to-Squat Jump", "p": "Plyometric (Squat)", "e": "Bench / Box", "f": "Plyo"}, {"n": "Cable Crunch", "p": "Core (Flexion)", "e": "Cable Machine", "f": "Core"}, {"n": "Cable Pallof Press", "p": "Core (Anti-Rotation)", "e": "Cable Machine", "f": "Core"}, {"n": "Cable Woodchop", "p": "Core (Rotation)", "e": "Cable Machine", "f": "Core"}, {"n": "Cable Pull-Through", "p": "Hip Hinge", "e": "Cable Machine", "f": "Hinge"}, {"n": "Cable Bicep Curl", "p": "Pull (Vertical)", "e": "Cable Machine", "f": "Pull"}, {"n": "Face Pull", "p": "Pull (Horizontal)", "e": "Cable Machine", "f": "Pull"}, {"n": "Lat Pulldown", "p": "Pull (Vertical)", "e": "Cable Machine", "f": "Pull"}, {"n": "Seated Cable Row", "p": "Pull (Horizontal)", "e": "Cable Machine", "f": "Pull"}, {"n": "Single-Arm Lat Pulldown", "p": "Pull (Vertical)", "e": "Cable Machine", "f": "Pull"}, {"n": "Straight-Arm Pulldown", "p": "Pull (Vertical)", "e": "Cable Machine", "f": "Pull"}, {"n": "Cable Crossover", "p": "Push (Horizontal)", "e": "Cable Machine", "f": "Push"}, {"n": "Cable Front Raise", "p": "Push (Vertical)", "e": "Cable Machine", "f": "Push"}, {"n": "Cable Lateral Raise", "p": "Push (Vertical)", "e": "Cable Machine", "f": "Push"}, {"n": "Tricep Pushdown", "p": "Push (Vertical)", "e": "Cable Machine", "f": "Push"}, {"n": "Dumbbell Side Bend", "p": "Core (Lateral Flexion)", "e": "Dumbbell", "f": "Core"}, {"n": "Dumbbell Suitcase Carry", "p": "Core (Anti-Lateral Flexion)", "e": "Dumbbell", "f": "Core"}, {"n": "Renegade Row", "p": "Core (Anti-Rotation)", "e": "Dumbbell", "f": "Core"}, {"n": "Dumbbell Glute Bridge", "p": "Hip Hinge", "e": "Dumbbell", "f": "Hinge"}, {"n": "Dumbbell Hip Thrust", "p": "Hip Hinge", "e": "Dumbbell", "f": "Hinge"}, {"n": "Dumbbell Romanian Deadlift", "p": "Hip Hinge", "e": "Dumbbell", "f": "Hinge"}, {"n": "Dumbbell Single-Leg RDL", "p": "Hip Hinge", "e": "Dumbbell", "f": "Hinge"}, {"n": "Dumbbell Calf Raise", "p": "Hip Hinge", "e": "Dumbbell", "f": "Isolation"}, {"n": "Dumbbell Curtsy Lunge", "p": "Lunge", "e": "Dumbbell", "f": "Lunge"}, {"n": "Dumbbell Forward Lunge", "p": "Lunge", "e": "Dumbbell", "f": "Lunge"}, {"n": "Dumbbell Lateral Lunge", "p": "Lunge", "e": "Dumbbell", "f": "Lunge"}, {"n": "Dumbbell Reverse Lunge", "p": "Lunge", "e": "Dumbbell", "f": "Lunge"}, {"n": "Dumbbell Step-Up", "p": "Lunge", "e": "Dumbbell", "f": "Lunge"}, {"n": "Dumbbell Walking Lunge", "p": "Lunge", "e": "Dumbbell", "f": "Lunge"}, {"n": "Dumbbell Squat Jump", "p": "Plyometric (Squat)", "e": "Dumbbell", "f": "Plyo"}, {"n": "Dumbbell Bent-Over Row", "p": "Pull (Horizontal)", "e": "Dumbbell", "f": "Pull"}, {"n": "Dumbbell Bicep Curl", "p": "Pull (Vertical)", "e": "Dumbbell", "f": "Pull"}, {"n": "Dumbbell Chest-Supported Row", "p": "Pull (Horizontal)", "e": "Dumbbell", "f": "Pull"}, {"n": "Dumbbell Shrug", "p": "Pull (Vertical)", "e": "Dumbbell", "f": "Pull"}, {"n": "Hammer Curl", "p": "Pull (Vertical)", "e": "Dumbbell", "f": "Pull"}, {"n": "Single-Arm Dumbbell Row", "p": "Pull (Horizontal)", "e": "Dumbbell", "f": "Pull"}, {"n": "Arnold Press", "p": "Push (Vertical)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Bench Press", "p": "Push (Horizontal)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Decline Press", "p": "Push (Horizontal)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Fly", "p": "Push (Horizontal)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Front Raise", "p": "Push (Vertical)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Incline Press", "p": "Push (Horizontal)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Lateral Raise", "p": "Push (Vertical)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Overhead Press", "p": "Push (Vertical)", "e": "Dumbbell", "f": "Push"}, {"n": "Overhead Tricep Extension", "p": "Push (Vertical)", "e": "Dumbbell", "f": "Push"}, {"n": "Single-Arm Dumbbell OHP", "p": "Push (Vertical)", "e": "Dumbbell", "f": "Push"}, {"n": "Single-Arm Dumbbell Press", "p": "Push (Horizontal)", "e": "Dumbbell", "f": "Push"}, {"n": "Dumbbell Bulgarian Split Squat", "p": "Squat", "e": "Dumbbell", "f": "Squat"}, {"n": "Kettlebell Suitcase Carry", "p": "Core (Anti-Lateral Flexion)", "e": "Kettlebell", "f": "Core"}, {"n": "Kettlebell Single-Leg RDL", "p": "Hip Hinge", "e": "Kettlebell", "f": "Hinge"}, {"n": "Kettlebell Swing", "p": "Hip Hinge", "e": "Kettlebell", "f": "Hinge"}, {"n": "Single-Arm Kettlebell OHP", "p": "Push (Vertical)", "e": "Kettlebell", "f": "Push"}, {"n": "Goblet Squat", "p": "Squat", "e": "Kettlebell", "f": "Squat"}, {"n": "Ab Crunch Machine", "p": "Core (Flexion)", "e": "Machine", "f": "Core"}, {"n": "Back Extension", "p": "Core (Extension)", "e": "Machine", "f": "Core"}, {"n": "Hamstring Curl", "p": "Hip Hinge", "e": "Machine", "f": "Hinge"}, {"n": "Machine Hip Thrust", "p": "Hip Hinge", "e": "Machine", "f": "Hinge"}, {"n": "Hip Abduction Machine", "p": "Hip Hinge", "e": "Machine", "f": "Isolation"}, {"n": "Hip Adduction Machine", "p": "Hip Hinge", "e": "Machine", "f": "Isolation"}, {"n": "Seated Calf Raise", "p": "Hip Hinge", "e": "Machine", "f": "Isolation"}, {"n": "Standing Calf Raise", "p": "Hip Hinge", "e": "Machine", "f": "Isolation"}, {"n": "Machine Chest-Supported Row", "p": "Pull (Horizontal)", "e": "Machine", "f": "Pull"}, {"n": "Preacher Curl", "p": "Pull (Vertical)", "e": "Machine", "f": "Pull"}, {"n": "Reverse Pec Deck (Rear Delt)", "p": "Pull (Horizontal)", "e": "Machine", "f": "Pull"}, {"n": "Chest Press Machine", "p": "Push (Horizontal)", "e": "Machine", "f": "Push"}, {"n": "Lateral Raise Machine", "p": "Push (Vertical)", "e": "Machine", "f": "Push"}, {"n": "Pec Deck Fly", "p": "Push (Horizontal)", "e": "Machine", "f": "Push"}, {"n": "Hack Squat", "p": "Squat", "e": "Machine", "f": "Squat"}, {"n": "Leg Extension", "p": "Squat", "e": "Machine", "f": "Squat"}, {"n": "Leg Press", "p": "Squat", "e": "Machine", "f": "Squat"}, {"n": "Medicine Ball Russian Twist", "p": "Core (Rotation)", "e": "Medicine Ball", "f": "Core"}, {"n": "Medicine Ball Slam", "p": "Plyometric (Pull)", "e": "Medicine Ball", "f": "Pull"}, {"n": "Medicine Ball Chest Pass", "p": "Plyometric (Push)", "e": "Medicine Ball", "f": "Push"}, {"n": "Hanging Leg Raise", "p": "Core (Flexion)", "e": "Pull-up Bar", "f": "Core"}, {"n": "Band Pallof Press", "p": "Core (Anti-Rotation)", "e": "Resistance Band", "f": "Core"}, {"n": "T-Bar Row", "p": "Pull (Horizontal)", "e": "T-Bar Machine", "f": "Pull"}, {"n": "Ab Rollout", "p": "Core (Anti-Extension)", "e": "Ab Wheel", "f": "Core"}, {"n": "Copenhagen Plank", "p": "Core (Anti-Lateral Flexion)", "e": "Bench", "f": "Core"}];
+const EXFAMS=["Squat", "Hinge", "Lunge", "Push", "Pull", "Core", "Plyo", "Isolation"];
 const COND=[{"id": "Phosphagen_Power", "label": "Phosphagen Power", "base": "Phosphagen", "pc": "Power", "work": "0-15s", "intensity": "Max", "wr": "> 1:10", "sysDesc": "Phosphagen system (ATP-PC / alactic). Supplies immediate energy for maximal efforts up to ~10–15 s before stored ATP and phosphocreatine deplete. Anaerobic. Fastest energy rate, smallest store. (ASCA Level 1, Module 5; NSCA Essentials.)", "pcDesc": "Power = the ability to do the most work in that energy system (peak output). Trained with shorter, harder efforts and longer rest. (ASCA Level 1, Module 5.)", "masNote": "", "mods": [{"m": "Sprints", "ex": "5-20 meter sprints from various starts.", "desc": "Maximal linear running; distance scales with the target system (ASCA: ~75 m in 15 s ≈ a speed-based intensity)."}, {"m": "Jumps", "ex": "Single max-effort Box Jumps, Broad Jumps.", "desc": "Single maximal jumps (box, broad) for alactic lower-body power."}, {"m": "Throws", "ex": "Max-effort Medicine Ball Slams, Overhead Throws.", "desc": "Maximal medicine-ball throws/slams for explosive total-body power."}, {"m": "Change of Direction", "ex": "Single-effort, max-speed COD drills (5-0-5, T-Test).", "desc": "Single max-speed cut (5-0-5, T-test). ASCA '10-second rule' — a COD test should not exceed 10 s."}, {"m": "Resisted Sprints", "ex": "Short, heavy sled pushes or pulls (5-10m).", "desc": "Short heavy sled pushes/pulls (5–10 m) for acceleration power."}, {"m": "Intervals (Machine)", "ex": "5-10 second max-effort burst on Assault Bike/Rower/SkiErg.", "desc": "Max-effort bursts on Assault Bike, Rower or SkiErg; duration set by the target system."}]}, {"id": "Phosphagen_Capacity", "label": "Phosphagen Capacity", "base": "Phosphagen", "pc": "Capacity", "work": "10-20s", "intensity": "Near-Max", "wr": "~ 1:8", "sysDesc": "Phosphagen system (ATP-PC / alactic). Supplies immediate energy for maximal efforts up to ~10–15 s before stored ATP and phosphocreatine deplete. Anaerobic. Fastest energy rate, smallest store. (ASCA Level 1, Module 5; NSCA Essentials.)", "pcDesc": "Capacity = the ability to sustain work in that energy system (how long it can keep contributing). Trained with slightly longer efforts and shorter rest. (ASCA Level 1, Module 5.)", "masNote": "", "mods": [{"m": "Sprints", "ex": "40-60 meter sprints.", "desc": "Maximal linear running; distance scales with the target system (ASCA: ~75 m in 15 s ≈ a speed-based intensity)."}, {"m": "Hill Sprints", "ex": "Short, steep hill sprints lasting 10-15 seconds.", "desc": "Short steep uphill sprints; adds resistance and self-limits top speed."}, {"m": "Repeated Jumps", "ex": "Continuous max-effort jumps for 10-15 seconds.", "desc": "Continuous jumps across the work period; reactive lower-body endurance."}, {"m": "Agility", "ex": "Continuous reactive mirror drills for 10-15 seconds.", "desc": "Continuous reactive/mirror drills across the work period."}, {"m": "Intervals (Machine)", "ex": "15-20 second max-effort burst on Assault Bike/Rower/SkiErg.", "desc": "Max-effort bursts on Assault Bike, Rower or SkiErg; duration set by the target system."}]}, {"id": "Glycolytic_Power", "label": "Glycolytic Power", "base": "Glycolytic", "pc": "Power", "work": "20-40s", "intensity": "High", "wr": "~ 1:5", "sysDesc": "Glycolytic system (lactate). Supplies short-term energy for efforts of ~15–60 s, breaking down carbohydrate and accumulating lactate. Anaerobic. Moderate rate and store. (ASCA Level 1, Module 5; NSCA Essentials.)", "pcDesc": "Power = the ability to do the most work in that energy system (peak output). Trained with shorter, harder efforts and longer rest. (ASCA Level 1, Module 5.)", "masNote": "", "mods": [{"m": "Sprints", "ex": "150-300 meter sprints.", "desc": "Maximal linear running; distance scales with the target system (ASCA: ~75 m in 15 s ≈ a speed-based intensity)."}, {"m": "Intervals (Machine)", "ex": "Max-effort intervals on Rower, Assault Bike, or SkiErg for 20-40s.", "desc": "Max-effort bursts on Assault Bike, Rower or SkiErg; duration set by the target system."}, {"m": "Shuttle Runs", "ex": "300-yard shuttle run.", "desc": "Out-and-back runs (e.g. 300-yard shuttle); decel/accel adds anaerobic demand."}, {"m": "Battle Ropes", "ex": "All-out effort for 30 seconds.", "desc": "All-out upper-body rope work across the work period."}, {"m": "Repeat COD", "ex": "Multiple reps of COD drills with short rest.", "desc": "Multiple change-of-direction reps with short rest; repeat-effort quality."}]}, {"id": "Glycolytic_Capacity", "label": "Glycolytic Capacity", "base": "Glycolytic", "pc": "Capacity", "work": "40-90s", "intensity": "High", "wr": "~ 1:3", "sysDesc": "Glycolytic system (lactate). Supplies short-term energy for efforts of ~15–60 s, breaking down carbohydrate and accumulating lactate. Anaerobic. Moderate rate and store. (ASCA Level 1, Module 5; NSCA Essentials.)", "pcDesc": "Capacity = the ability to sustain work in that energy system (how long it can keep contributing). Trained with slightly longer efforts and shorter rest. (ASCA Level 1, Module 5.)", "masNote": "", "mods": [{"m": "Sprints", "ex": "400-600 meter runs.", "desc": "Maximal linear running; distance scales with the target system (ASCA: ~75 m in 15 s ≈ a speed-based intensity)."}, {"m": "Intervals (Machine)", "ex": "Longer intervals (e.g., 60s on, 60s off on Bike/Rower/SkiErg).", "desc": "Max-effort bursts on Assault Bike, Rower or SkiErg; duration set by the target system."}, {"m": "Circuits", "ex": "Strongman Circuits (Farmer's walks, tire flips).", "desc": "Strongman-style stations (carries, flips) chained continuously."}, {"m": "Small-Sided Games", "ex": "High-intensity, continuous 1v1, 2v2, or 3v3 drills.", "desc": "Reduced-player games (1v1–3v3) sustaining high intensity."}]}, {"id": "Aerobic_Power", "label": "Aerobic Power", "base": "Aerobic", "pc": "Power", "work": "Intervals", "intensity": ">90% MAS", "wr": "~ 1:1", "sysDesc": "Aerobic / oxidative system. Supplies long-term energy for efforts beyond ~1 minute and for repeated shorter efforts, using oxygen with carbohydrate and fat. At ~1 min, aerobic and anaerobic contributions are roughly equal; beyond that aerobic dominates. Slowest rate, near-limitless store. (ASCA Level 1, Module 5.)", "pcDesc": "Power = the ability to do the most work in that energy system (peak output). Trained with shorter, harder efforts and longer rest. (ASCA Level 1, Module 5.)", "masNote": "MAS = Maximal Aerobic Speed, the lowest speed at which VO2max occurs. ASCA prescribes the simplest valid test as a 5-min time trial (distance ÷ 300 = MAS in m/s), highly correlated with other MAS methods (r=0.97, Berthon et al. 1997). Intervals are then prescribed as %MAS. Use the Pace & ASR tools to work in MAS.", "mods": [{"m": "MAS Intervals (EuroFit)", "ex": "15s running @ 120% MAS : 15s rest.", "desc": "15 s on : 15 s off at ~120% MAS; supramaximal aerobic-power driver (ASCA Zone 6)."}, {"m": "MAS Grids (100/70%)", "ex": "Run long sides @ 100% MAS, short sides @ 70%.", "desc": "Rectangular grid: long sides at 100% MAS, short sides at 70%, one lap per minute."}, {"m": "Long Intervals", "ex": "90s runs @ 95-100% MAS with equal rest.", "desc": "~90 s at 95–100% MAS with equal rest; accumulates time at/near VO2max."}, {"m": "Tabata Intervals", "ex": "20s max effort on rower/bike : 10s rest.", "desc": "20 s max : 10 s rest on erg/bike; classic supramaximal interval."}]}, {"id": "Aerobic_Capacity", "label": "Aerobic Capacity", "base": "Aerobic", "pc": "Capacity", "work": "Continuous", "intensity": "<90% MAS", "wr": "Continuous", "sysDesc": "Aerobic / oxidative system. Supplies long-term energy for efforts beyond ~1 minute and for repeated shorter efforts, using oxygen with carbohydrate and fat. At ~1 min, aerobic and anaerobic contributions are roughly equal; beyond that aerobic dominates. Slowest rate, near-limitless store. (ASCA Level 1, Module 5.)", "pcDesc": "Capacity = the ability to sustain work in that energy system (how long it can keep contributing). Trained with slightly longer efforts and shorter rest. (ASCA Level 1, Module 5.)", "masNote": "MAS = Maximal Aerobic Speed, the lowest speed at which VO2max occurs. ASCA prescribes the simplest valid test as a 5-min time trial (distance ÷ 300 = MAS in m/s), highly correlated with other MAS methods (r=0.97, Berthon et al. 1997). Intervals are then prescribed as %MAS. Use the Pace & ASR tools to work in MAS.", "mods": [{"m": "Steady-State Cardio", "ex": "20-60+ mins continuous run, cycle, or swim.", "desc": "20–60+ min continuous below ~90% MAS (ASCA aerobic Zones 1–3)."}, {"m": "Fartlek", "ex": "Continuous run with unstructured speed bursts.", "desc": "Continuous run with unstructured speed surges ('speed play')."}, {"m": "Tempo Runs", "ex": "Sustained effort near lactate threshold.", "desc": "Sustained effort near critical speed / lactate threshold (ASCA Zone 4)."}, {"m": "Active Recovery", "ex": "Very low-intensity work (<65% MAS).", "desc": "Very low intensity (<69% MAS, ASCA Zone 1) to promote recovery."}]}];
 
 /* ============ helpers ============ */
@@ -623,7 +687,7 @@ const uid=()=>Math.random().toString(36).slice(2,10);
 let view="today";
 function show(v){
   view=v;
-  document.querySelectorAll("main section").forEach(s=>s.classList.toggle("on", s.id==="v-"+v));
+  document.querySelectorAll("main section").forEach(s=>{ if(s.id!=="v-more") s.classList.toggle("on", s.id==="v-"+v); });
   document.querySelectorAll(".tabbar button").forEach(b=>b.setAttribute("aria-current", b.dataset.v===v));
   document.querySelectorAll(".tabbar .ic").forEach(ic=>ic.setAttribute("stroke", ic.closest("button").dataset.v===v?"var(--pine)":"var(--ink-2)"));
   window.scrollTo(0,0);
@@ -631,13 +695,32 @@ function show(v){
 }
 document.querySelectorAll(".tabbar button").forEach(b=>b.addEventListener("click",()=>show(b.dataset.v)));
 
+/* ============ More drawer ============ */
+let drawerOpen=false;
+function openDrawer(){
+  drawerOpen=true;
+  $("#drawerBackdrop").hidden=false;
+  $("#v-more").classList.add("open");
+  renderRecent(); renderFAQ(); $("#baseCmj").value=S.baseline??"";
+  document.body.style.overflow="hidden";
+}
+function closeDrawer(){
+  drawerOpen=false;
+  $("#v-more").classList.remove("open");
+  $("#drawerBackdrop").hidden=true;
+  document.body.style.overflow="";
+}
+$("#menuOpen").addEventListener("click",openDrawer);
+$("#menuClose").addEventListener("click",closeDrawer);
+$("#drawerBackdrop").addEventListener("click",closeDrawer);
+
 function render(){
   $("#athName").value=S.name||"";
   $("#sportLine").textContent=S.sport||"Solo training log";
   renderBanner();
   if(view==="today") renderToday();
   if(view==="tests") renderTests();
-  if(view==="more"){ renderRecent(); renderFAQ(); $("#baseCmj").value=S.baseline??""; }
+  if(drawerOpen){ renderRecent(); renderFAQ(); $("#baseCmj").value=S.baseline??""; }
 }
 
 function renderBanner(){
@@ -886,8 +969,9 @@ function renderRecent(){
       const detail = s.exercises ? `${esc(s.type)}<br><small style="color:var(--ink-2)">${s.exercises.map(e=>esc(e.name.replace(/^(Barbell|Bodyweight|Dumbbell) /,""))).slice(0,3).join(", ")}${s.exercises.length>3?"…":""} · ${fmt(s.ext)} kg</small>`
         : s.cond ? `${esc(s.type)}<br><small style="color:var(--ink-2)">${esc((COND.find(c=>c.id===s.cond.system)||{label:s.cond.system}).label)} · ${esc(s.cond.modality||"")}</small>`
         : `${esc(s.type)}<br><small style="color:var(--ink-2)">${s.duration} min · RPE ${s.rpe}</small>`;
-      return `<tr><td>${s.date.slice(5)}</td><td>${detail}</td><td class="r">${s.duration*s.rpe}</td><td class="r"><button class="del" data-id="${s.id}">Delete</button></td></tr>`;
+      return `<tr><td>${s.date.slice(5)}</td><td>${detail}</td><td class="r">${s.duration*s.rpe}</td><td class="r" style="white-space:nowrap"><button class="edit" data-id="${s.id}">Edit</button> <button class="del" data-id="${s.id}">Delete</button></td></tr>`;
     }).join("")+`</tbody>`;
+  t.querySelectorAll(".edit").forEach(b=>b.addEventListener("click",()=>editSession(b.dataset.id)));
   t.querySelectorAll(".del").forEach(b=>b.addEventListener("click",()=>{ S.sessions=S.sessions.filter(x=>x.id!==b.dataset.id); persist(); render(); toast("Deleted","ok"); }));
 }
 
@@ -1309,15 +1393,82 @@ function buildPickers(){
   const today=dstr(new Date());
   for(const id of ["sDate","wDate","tDate"]) $("#"+id).value=today;
 }
-$("#tName").addEventListener("change",()=>$("#tUnit").value=testDef($("#tName").value).unit);
+$("#tName").addEventListener("change",()=>{ $("#tUnit").value=testDef($("#tName").value).unit; sync1rmUI(); });
+
+// 1RM reps → estimated 1RM (Epley)
+function epley1RM(load, reps){ return reps>=1 ? load*(1+reps/30) : load; }
+function sync1rmUI(){
+  const def=testDef($("#tName").value);
+  const rf=$("#repsField");
+  rf.hidden = !def.is1rm;
+  $("#tValLabel").textContent = def.is1rm ? "Weight lifted (kg)" : "Result";
+  if(def.is1rm) update1rmHint();
+}
+function update1rmHint(){
+  const def=testDef($("#tName").value); if(!def.is1rm) return;
+  const load=+$("#tVal").value, reps=+$("#tReps").value;
+  const h=$("#e1rmHint");
+  if(!(load>0)||!(reps>=1)){ h.hidden=true; return; }
+  if(reps>10){ h.hidden=false; h.innerHTML=`<b>Max 10 reps</b> for a reliable estimate. Use a heavier set of 10 reps or fewer.`; return; }
+  if(reps==1){ h.hidden=false; h.innerHTML=`Logging a <b>true 1RM</b> of ${load} kg.`; return; }
+  const e1=epley1RM(load,reps);
+  h.hidden=false;
+  h.innerHTML=`<b>${reps} reps × ${load} kg</b> → estimated 1RM <b>${Math.round(e1*10)/10} kg</b> (Epley). This estimate is what gets logged.`;
+}
+$("#tVal").addEventListener("input",update1rmHint);
+$("#tReps").addEventListener("input",update1rmHint);
 $("#athName").addEventListener("input",e=>{ S.name=e.target.value; persist(); $("#sportLine").textContent=S.sport||"Solo training log"; });
+
+let editingId = null;
+function exitEditMode(){
+  editingId=null;
+  $("#editBanner").hidden=true;
+  $("#logHeading").textContent="Log a session";
+  $("#addSession").textContent="Add session";
+  // clear the form
+  $("#sDur").value=""; $("#sExt").value=""; rpe=null; $("#rpeVal").textContent="";
+  $("#rpeSeg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false"));
+  draft=[]; condSel={system:null,modality:null}; renderDraft();
+  $("#sDate").value=dstr(new Date());
+  $("#sType").value="Strength"; syncTypeBlocks();
+}
+function editSession(id){
+  const s=S.sessions.find(x=>x.id===id); if(!s) return;
+  editingId=id;
+  $("#editBanner").hidden=false;
+  $("#logHeading").textContent="Edit session";
+  $("#addSession").textContent="Save changes";
+  // populate base fields
+  $("#sDate").value=s.date;
+  $("#sType").value=s.type; syncTypeBlocks();
+  $("#sDur").value=s.duration;
+  $("#sExt").value=s.ext||"";
+  rpe=s.rpe; $("#rpeVal").textContent="· "+rpe;
+  $("#rpeSeg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed", +x.dataset.r===s.rpe));
+  // exercises
+  draft = s.exercises ? s.exercises.map(e=>({name:e.name, sets:e.sets.map(t=>({reps:String(t.reps),load:t.load?String(t.load):""}))})) : [];
+  renderDraft();
+  // conditioning
+  if(s.cond){
+    condSel={system:s.cond.system, modality:s.cond.modality};
+    const chips=$("#sysChips");
+    chips.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.s===s.cond.system));
+    const sys=COND.find(c=>c.id===s.cond.system);
+    if(sys){ $("#condMod").innerHTML=sys.mods.map(m=>`<option ${m.m===s.cond.modality?"selected":""}>${esc(m.m)}</option>`).join(""); updateGuide(); }
+  } else { condSel={system:null,modality:null}; }
+  // jump to Log tab, close drawer if open
+  if(typeof closeDrawer==="function") closeDrawer();
+  show("log");
+  window.scrollTo(0,0);
+}
+$("#cancelEdit").addEventListener("click",exitEditMode);
 
 $("#addSession").addEventListener("click",()=>{
   const dur=+$("#sDur").value, type=$("#sType").value;
   if(!(dur>0)) return toast("Enter minutes","err");
   if(!(rpe>=1&&rpe<=10)) return toast("Tap an RPE","err");
   const load=dur*rpe;
-  const sess={id:uid(),date:$("#sDate").value,type,duration:dur,rpe,ext:$("#sExt").value?+$("#sExt").value:0};
+  const sess={id:editingId||uid(),date:$("#sDate").value,type,duration:dur,rpe,ext:$("#sExt").value?+$("#sExt").value:0};
   if(type==="Strength" && draft.length){
     sess.exercises = draft.map(d=>({name:d.name, sets:d.sets.filter(s=>+s.reps>0).map(s=>({reps:+s.reps, load:+s.load||0}))})).filter(d=>d.sets.length);
     const t=tonnage();
@@ -1326,13 +1477,20 @@ $("#addSession").addEventListener("click",()=>{
   if(type==="Conditioning" && condSel.system){
     sess.cond={system:condSel.system, modality:condSel.modality};
   }
-  S.sessions.push(sess);
-  persist(); $("#sDur").value=""; $("#sExt").value=""; rpe=null; $("#rpeVal").textContent="";
-  $("#rpeSeg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false"));
-  draft=[]; renderDraft();
-  const detail = sess.exercises ? ` · ${sess.exercises.length} exercises, ${fmt(sess.ext)} kg`
-    : sess.cond ? ` · ${COND.find(s=>s.id===sess.cond.system).label}` : "";
-  toast(`Session added — load ${load} AU${detail}`,"ok");
+  if(editingId){
+    const i=S.sessions.findIndex(x=>x.id===editingId);
+    if(i>=0) S.sessions[i]=sess; 
+    persist(); exitEditMode(); render();
+    toast("Session updated","ok");
+  } else {
+    S.sessions.push(sess);
+    persist(); $("#sDur").value=""; $("#sExt").value=""; rpe=null; $("#rpeVal").textContent="";
+    $("#rpeSeg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false"));
+    draft=[]; renderDraft();
+    const detail = sess.exercises ? ` · ${sess.exercises.length} exercises, ${fmt(sess.ext)} kg`
+      : sess.cond ? ` · ${COND.find(s=>s.id===sess.cond.system).label}` : "";
+    toast(`Session added — load ${load} AU${detail}`,"ok");
+  }
 });
 $("#addWellness").addEventListener("click",()=>{
   const get=k=>{ const s=document.querySelector(".w-"+k); return s&&s.dataset.val?+s.dataset.val:null; };
@@ -1343,11 +1501,19 @@ $("#addWellness").addEventListener("click",()=>{
   toast(`Check-in added — ${Object.values(v).reduce((a,b)=>a+b,0)}/25`,"ok");
 });
 $("#addTest").addEventListener("click",()=>{
-  const val=$("#tVal").value;
-  if(val===""||Number.isNaN(+val)) return toast("Enter a result","err");
-  S.tests.push({id:uid(),date:$("#tDate").value,test:$("#tName").value,value:+val,unit:$("#tUnit").value});
-  persist(); const t=$("#tName").value, u=$("#tUnit").value; $("#tVal").value="";
-  toast(`${t} added — ${val} ${u}`,"ok");
+  const def=testDef($("#tName").value);
+  const raw=$("#tVal").value;
+  if(raw===""||Number.isNaN(+raw)) return toast("Enter a result","err");
+  let value=+raw, note="";
+  if(def.is1rm){
+    const reps=+$("#tReps").value;
+    if(!(reps>=1)) return toast("Enter reps (1 or more)","err");
+    if(reps>10) return toast("Max 10 reps for a 1RM estimate","err");
+    if(reps>1){ value=Math.round(epley1RM(+raw,reps)*10)/10; note=` (est. from ${reps}×${raw}kg)`; }
+  }
+  S.tests.push({id:uid(),date:$("#tDate").value,test:$("#tName").value,value,unit:$("#tUnit").value});
+  persist(); const t=$("#tName").value, u=$("#tUnit").value; $("#tVal").value=""; $("#tReps").value="1"; update1rmHint();
+  toast(`${t} added — ${value} ${u}${note}`,"ok");
 });
 $("#saveBase").addEventListener("click",()=>{
   const v=$("#baseCmj").value; S.baseline=v?+v:null; persist(); renderTests();
@@ -1361,7 +1527,6 @@ function exportFile(){
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`${nm}-${dstr(new Date())}.training.json`; a.click(); URL.revokeObjectURL(a.href);
   S.lastExport=Date.now(); persist(); renderBanner(); toast("Training file saved","ok");
 }
-$("#quickSave").addEventListener("click",exportFile);
 $("#btnExport").addEventListener("click",exportFile);
 $("#bannerSave").addEventListener("click",exportFile);
 $("#btnImport").addEventListener("click",()=>$("#fileInput").click());
@@ -1374,7 +1539,7 @@ $("#fileInput").addEventListener("change",e=>{
   r.readAsText(f); e.target.value="";
 });
 $("#btnClear").addEventListener("click",()=>{ if(!confirm("Clear everything on this device? Save a file first if unsure.")) return;
-  S={ name:"",sport:"",baseline:null,sessions:[],wellness:[],tests:[],lastExport:null,favs:[], isDark:false, accent:"#16655a" }; persist(); applyTheme(); buildPickers(); show("today"); toast("Cleared","ok"); });
+  S={ name:"",sport:"",baseline:null,sessions:[],wellness:[],tests:[],lastExport:null,favs:[], isDark:false, accent:"#16655a" }; persist(); applyTheme(); buildPickers(); closeDrawer(); show("today"); toast("Cleared","ok"); });
 
 /* ============ sample ============ */
 $("#btnSample").addEventListener("click",()=>{
@@ -1407,7 +1572,7 @@ $("#btnSample").addEventListener("click",()=>{
   for(const wk of [4,2,0]){ tests.push({id:uid(),date:addDays(today,-7*wk),test:"CMJ",value:Math.round((33+(4-wk)/4*1.5+(rnd()*1.4-0.7))*10)/10,unit:"cm"});
     tests.push({id:uid(),date:addDays(today,-7*wk),test:"10m Sprint",value:Math.round((1.85-(4-wk)/4*0.03+(rnd()*0.04-0.02))*100)/100,unit:"s"}); }
   S={ name:"Sample Athlete",sport:"Solo training log",baseline:33,sessions,wellness,tests,lastExport:Date.now(),favs:["Barbell Back Squat","Pull-Up"], isDark:S.isDark, accent:S.accent };
-  persist(); show("today"); toast("Sample data loaded","ok");
+  persist(); closeDrawer(); show("today"); toast("Sample data loaded","ok");
 });
 
 /* ============ Theme Manager ============ */
@@ -1440,9 +1605,13 @@ function applyTheme() {
 
   // Update chart if it exists to match the current theme
   if (loadChartInstance) {
-    loadChartInstance.data.datasets[0].backgroundColor = accent;
-    loadChartInstance.options.scales.y.grid.color = root.style.getPropertyValue('--line');
-    loadChartInstance.update();
+    try {
+      if (loadChartInstance.data && loadChartInstance.data.datasets[0])
+        loadChartInstance.data.datasets[0].backgroundColor = accent;
+      if (loadChartInstance.options && loadChartInstance.options.scales && loadChartInstance.options.scales.y)
+        loadChartInstance.options.scales.y.grid.color = root.style.getPropertyValue('--line');
+      if (typeof loadChartInstance.update === 'function') loadChartInstance.update();
+    } catch (e) { /* chart not fully built yet */ }
   }
   render(); // trigger canvas re-renders for Lift and Tests tabs
 }
@@ -1458,6 +1627,7 @@ document.getElementById('accentPicker').addEventListener('input', (e) => {
 });
 
 buildPickers();
+sync1rmUI();
 bindGranular();
 $("#liftPick").addEventListener("change",()=>drawLift($("#liftPick").value));
 
