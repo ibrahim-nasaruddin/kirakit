@@ -297,6 +297,15 @@ details[open] summary::after{content:"–"}
 .chartnav button{padding:8px 13px;border-radius:9px;font-weight:700;font-size:13px;color:var(--pine);background:var(--hall);border:none}
 .chartnav button:disabled{color:var(--line);background:transparent;cursor:default}
 .chartnav span{font-size:12.5px;color:var(--ink-2);font-weight:600;text-align:center;flex:1}
+.ewma-toggle{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--ink-2);font-weight:600;cursor:pointer}
+.ewma-toggle input{width:18px;height:18px;accent-color:var(--pine)}
+.logchooser{display:flex;flex-direction:column;gap:11px;margin-bottom:6px}
+.logcard{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:18px 18px 16px;border:1.5px solid var(--line);border-radius:16px;background:var(--panel);position:relative;padding-left:64px;min-height:74px;justify-content:center}
+.logcard:active{background:var(--mist)}
+.logcard-ic{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:28px;line-height:1}
+.logcard b{font-size:16px;font-weight:800}
+.logcard small{font-size:12.5px;color:var(--ink-2);line-height:1.35}
+.logback{width:auto;display:inline-flex;align-items:center;padding:9px 16px;font-size:14px;color:var(--ink-2)}
 .sub{color:var(--ink-2);font-size:13.5px;margin-bottom:10px}
 footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:var(--ink-2)}
 </style>
@@ -358,15 +367,39 @@ footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:
         <span id="loadRangeLbl"></span>
         <button type="button" id="loadNext" aria-label="Later">later ›</button>
       </div>
+      <label class="ewma-toggle"><input type="checkbox" id="ewmaToggle"> <span>Show EWMA trend line</span></label>
     </div>
   </section>
 
   <section id="v-log">
-    <h2 style="margin-top:0" id="logHeading">Log a session</h2>
+    <h2 style="margin-top:0" id="logHeading">What do you want to log?</h2>
+
+    <div id="logChooser" class="logchooser">
+      <button type="button" class="logcard" data-log="session">
+        <span class="logcard-ic">🏋️</span>
+        <b>Training session</b>
+        <small>Strength, conditioning, skills, match or recovery</small>
+      </button>
+      <button type="button" class="logcard" data-log="wellness">
+        <span class="logcard-ic">☀️</span>
+        <b>Daily check-in</b>
+        <small>Five quick wellness scores</small>
+      </button>
+      <button type="button" class="logcard" data-log="test">
+        <span class="logcard-ic">📈</span>
+        <b>Test result</b>
+        <small>Jumps, sprints, 1RM, field tests</small>
+      </button>
+    </div>
+
+    <button type="button" class="ghost logback" id="logBack" hidden style="margin-top:0;margin-bottom:14px">‹ Back</button>
+
     <div id="editBanner" class="banner" hidden style="background:#e8f3ec;border-color:#bcd9c6;color:#15433a">
       <span>Editing a previous session.</span>
       <button id="cancelEdit" style="background:#15433a">Cancel</button>
     </div>
+
+    <div id="logSession" class="logblock" hidden>
     <div class="panel">
       <div class="field"><label for="sDate">Date</label><input type="date" id="sDate"></div>
       <div class="field"><label for="sType">Type</label>
@@ -398,15 +431,17 @@ footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:
       </div>
       <button class="primary" id="addSession">Add session</button>
     </div>
+    </div>
 
-    <h2>Daily check-in</h2>
+    <div id="logWellness" class="logblock" hidden>
     <div class="panel">
       <div class="field"><label for="wDate">Date</label><input type="date" id="wDate"></div>
       <div id="wellnessFields"></div>
       <button class="primary" id="addWellness">Add check-in</button>
     </div>
+    </div>
 
-    <h2>Test result</h2>
+    <div id="logTest" class="logblock" hidden>
     <div class="panel">
       <div class="field"><label for="tDate">Date</label><input type="date" id="tDate"></div>
       <div class="field"><label for="tName">Test</label><select id="tName"></select></div>
@@ -420,6 +455,7 @@ footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:
         <div class="sysguide" id="e1rmHint" style="margin-top:8px" hidden></div>
       </div>
       <button class="primary" id="addTest">Add result</button>
+    </div>
     </div>
   </section>
 
@@ -696,7 +732,32 @@ function show(v){
   window.scrollTo(0,0);
   render();
 }
-document.querySelectorAll(".tabbar button").forEach(b=>b.addEventListener("click",()=>show(b.dataset.v)));
+document.querySelectorAll(".tabbar button").forEach(b=>b.addEventListener("click",()=>{
+  if(b.dataset.v==="log" && !editingId) resetLogChooser();
+  show(b.dataset.v);
+}));
+
+/* ============ Log chooser ============ */
+function resetLogChooser(){
+  $("#logChooser").hidden=false;
+  $("#logBack").hidden=true;
+  $("#logHeading").textContent="What do you want to log?";
+  document.querySelectorAll(".logblock").forEach(b=>b.hidden=true);
+}
+function showLogForm(which){
+  $("#logChooser").hidden=true;
+  $("#logBack").hidden=false;
+  document.querySelectorAll(".logblock").forEach(b=>b.hidden=true);
+  if(which==="session"){ $("#logSession").hidden=false; $("#logHeading").textContent="Log a session"; }
+  else if(which==="wellness"){ $("#logWellness").hidden=false; $("#logHeading").textContent="Daily check-in"; }
+  else if(which==="test"){ $("#logTest").hidden=false; $("#logHeading").textContent="Test result"; }
+  window.scrollTo(0,0);
+}
+document.querySelectorAll(".logcard").forEach(c=>c.addEventListener("click",()=>showLogForm(c.dataset.log)));
+$("#logBack").addEventListener("click",()=>{
+  if(editingId) exitEditMode();
+  resetLogChooser();
+});
 
 /* ============ More drawer ============ */
 let drawerOpen=false;
@@ -820,18 +881,35 @@ function drawLoadChart() {
   const inkColor  = getComputedStyle(document.documentElement).getPropertyValue('--ink-2').trim() || '#5a665f';
   const unit = series.bucket === 'week' ? 'AU / week' : 'AU';
 
+  // EWMA trend overlay (Williams 2017; Murray 2017) — recent sessions weighted more.
+  // λ = 2/(N+1); N = 7 for daily buckets, 4 for weekly.
+  const ewmaOn = document.getElementById('ewmaToggle') && document.getElementById('ewmaToggle').checked;
+  const datasets = [{
+    label: series.bucket === 'week' ? 'Weekly Load (AU)' : 'Daily Load (AU)',
+    data: series.data,
+    fullDates: series.fullDates,
+    backgroundColor: pineColor,
+    borderRadius: 4,
+    maxBarThickness: 46,
+    order: 2,
+  }];
+  if(ewmaOn){
+    const N = series.bucket === 'week' ? 4 : 7;
+    const lambda = 2/(N+1);
+    const ew=[]; let prev=null;
+    for(const v of series.data){ prev = prev===null ? v : v*lambda + (1-lambda)*prev; ew.push(Math.round(prev*10)/10); }
+    datasets.push({
+      label: `EWMA trend (${N}-${series.bucket==='week'?'wk':'day'})`,
+      data: ew, type:'line', borderColor:'#b45309', backgroundColor:'#b45309',
+      borderWidth:2.5, pointRadius:0, tension:0.4, fill:false, order:1,
+    });
+  }
+
   loadChartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: series.labels,
-      datasets: [{
-        label: series.bucket === 'week' ? 'Weekly Load (AU)' : 'Daily Load (AU)',
-        data: series.data,
-        fullDates: series.fullDates,
-        backgroundColor: pineColor,
-        borderRadius: 4,
-        maxBarThickness: 46,
-      }]
+      datasets: datasets
     },
     options: {
       responsive: true,
@@ -847,7 +925,7 @@ function drawLoadChart() {
               const ds = items[0].dataset.fullDates;
               return ds ? ds[items[0].dataIndex] : items[0].label;
             },
-            label: (context) => `${context.parsed.y} ${unit}`
+            label: (context) => context.dataset.type==='line' ? `EWMA: ${context.parsed.y} ${unit}` : `${context.parsed.y} ${unit}`
           }
         }
       },
@@ -1125,7 +1203,7 @@ function paceCalc(){
     </div>
     <div id="pcInputs"></div>
     <div class="calc-out" id="pcOut"></div>
-    <p class="calc-note">Based on distance = speed × time. Enter any two and the third is calculated. Speeds convert across m/s, km/h, mph and pace.</p>`;
+    <p class="calc-note">Converts between speed, distance and time (distance = speed × time) across m/s, km/h, mph and pace.</p>`;
 
   let mode="speed";
 
@@ -1241,11 +1319,11 @@ function asrCalc(){
       <div class="calc-field"><label>MAS (m/s)</label><input id="asrMas" inputmode="decimal" placeholder="e.g. 4.0"></div>
       <div class="calc-field"><label>MSS (m/s)</label><input id="asrMss" inputmode="decimal" placeholder="e.g. 9.0"></div>
     </div>
-    <p class="calc-note" style="margin-top:0;margin-bottom:10px">MAS = maximal aerobic speed (5-min time-trial distance ÷ 300). MSS = maximal sprinting speed (fastest 10–40 m flying-sprint split). Both in m/s — use the Pace converter if yours are in km/h.</p>
+    <p class="calc-note" style="margin-top:0;margin-bottom:10px">MAS = aerobic speed (5-min trial ÷ 300); MSS = top sprint speed (fastest flying-sprint split). Both in m/s.</p>
     <div class="calc-out" id="asrOut"></div>
     <div class="calc-field"><label>Target intensity (% ASR)</label><input id="asrPct" inputmode="numeric" value="30" placeholder="e.g. 30"></div>
     <div class="calc-out" id="asrTarget"></div>
-    <p class="calc-note">ASR = MSS − MAS (Sandford, Laursen & Buchheit, Sports Med 2021). Target velocity at a given %ASR = MAS + (%ASR × ASR). Prescribing supra-MAS intervals by %ASR — rather than %MAS — accounts for two athletes with the same MAS but different top speeds tolerating high-speed work differently.</p>`;
+    <p class="calc-note">The speed range between MAS and top sprint speed (ASR = MSS − MAS); prescribe supra-MAS intervals by %ASR for fairer individual loading (Sandford, Laursen & Buchheit, Sports Med 2021).</p>`;
   const calc=()=>{
     const mas=+$("#asrMas").value, mss=+$("#asrMss").value;
     const o=$("#asrOut"), t=$("#asrTarget");
@@ -1279,7 +1357,7 @@ function hrrCalc(){
     </div>
     <div class="calc-out" id="hrrOut"></div>
     <table class="zone-tbl" id="hrrZones"></table>
-    <p class="calc-note">Karvonen method (Karvonen, 1957): Target HR = HRrest + (HRR × intensity), where HRR = HRmax − HRrest. Accounts for individual resting HR, so it tracks %VO2 more closely than %HRmax (ACSM-recommended). Age estimate uses the Gellish formula HRmax = 206.9 − 0.67 × age, more accurate than 220 − age. Zone bands shown as %HRR.</p>`;
+    <p class="calc-note">Heart-rate zones from heart-rate reserve (target HR = HRrest + HRR × intensity), which tracks intensity better than %max-HR alone (Karvonen 1957; ACSM); age estimate uses Gellish.</p>`;
   const zones=[["Recovery","50","60"],["Aerobic base","60","70"],["Tempo","70","80"],["Threshold","80","90"],["VO₂max / anaerobic","90","100"]];
   const calc=()=>{
     const rest=+$("#hrRest").value; const mode=$("#hrMode").value; const raw=+$("#hrMaxIn").value;
@@ -1314,7 +1392,7 @@ function e1rmCalc(){
     </div>
     <div class="calc-out" id="e1Out"></div>
     <div id="e1Table"></div>
-    <p class="calc-note">Epley: 1RM = w × (1 + reps/30). Brzycki: 1RM = w ÷ (1.0278 − 0.0278 × reps). Both are validated only for sets of <b>≤10 reps</b> — the load–rep relationship is near-linear there but becomes exponential beyond 10, so higher-rep sets are not estimated. Accuracy is best at 3–6 reps (~3–7% error) and good across 2–10 reps (~5–10%) (JSCR 2016 meta-analysis). Epley and Brzycki agree exactly at 10 reps; below that Epley sits slightly higher. The two differ by exercise and rep range, so the average is shown as a sensible default.</p>`;
+    <p class="calc-note">Estimates your 1-rep max from a near-failure set of ≤10 reps via Epley and Brzycki; most accurate at 3–6 reps (~3–7% error), unreliable above 10 (JSCR 2016 meta-analysis).</p>`;
   const epley=(w,r)=> w*(1+r/30);
   const brzycki=(w,r)=> w/(1.0278-0.0278*r);
   const calc=()=>{
@@ -1350,8 +1428,37 @@ function masCalc(){
     </div>
     <div id="masInputs"></div>
     <div class="calc-out" id="masOut"></div>
-    <p class="calc-note" id="masNote"></p>`;
+    <p class="calc-note" id="masNote"></p>
+    <details id="masZoneWrap" class="draw-acc" hidden style="margin-top:14px">
+      <summary>Show training zones</summary>
+      <div class="draw-acc-body">
+        <div class="calc-field" style="margin-top:0"><label>Interval work duration (for zone distances)</label>
+          <div class="calc-two"><input id="masIntSec" inputmode="numeric" value="15"><span style="align-self:center;color:var(--ink-2);font-size:14px">seconds</span></div>
+        </div>
+        <div class="calc-field"><label>Show zone speed as</label>
+          <div class="seg" id="masUnitSeg">
+            <button type="button" data-u="kmh" aria-pressed="true">km/h</button>
+            <button type="button" data-u="minkm" aria-pressed="false">min/km</button>
+            <button type="button" data-u="ms" aria-pressed="false">m/s</button>
+          </div>
+        </div>
+        <div id="masZones"></div>
+        <p class="calc-note">Training zones as %MAS (Dan Baker, <i>Recent Trends in High-Intensity Aerobic Training for Field Sports</i>, UKSCA/ASCA). Distance = zone speed × work duration — the metres to cover per rep. For ranges, the band's mid-point %MAS is used.</p>
+      </div>
+    </details>`;
+  let zoneUnit="kmh";
   let mode="dist";
+  const MAS_ZONES=[
+    ["Continuous","Easy aerobic / Zone 2",60,75],
+    ["Long tempo","Steady tempo",75,85],
+    ["Threshold","Cruise intervals",85,90],
+    ["Critical speed","Critical-speed intervals",90,95],
+    ["Aerobic power","Long VO₂max intervals",95,100],
+    ["Aerobic capacity","Long VO₂max intervals",100,105],
+    ["Short aerobic","Short aerobic HIIT",105,115],
+    ["Supramaximal","Short HIIT",115,130],
+    ["Anaerobic","Short anaerobic HIIT",130,140],
+  ];
   const distInputs=`
     <div class="calc-field"><label>Distance covered</label>
       <div class="calc-two">
@@ -1379,9 +1486,9 @@ function masCalc(){
     const o=$("#masOut"), note=$("#masNote");
     const isFive = t!==null && Math.abs(t-300)<=1;
     note.innerHTML = mode==="dist"
-      ? `MAS (m/s) = distance ÷ time. Run a set distance (1.5–2 km) flat-out on a flat course or track; it should take <b>5–7 min</b>. The 5-min variant (distance ÷ 300) correlates r=0.94 with lab-measured MAS.`
-      : `MAS (m/s) = distance ÷ time. Run as far as possible in a fixed time (classically <b>5 min</b>); MAS = distance ÷ 300. This 5-min time trial correlates r=0.94 with lab-measured MAS.`;
-    if(m===null||t===null){ o.innerHTML=`<div class="big">—</div><div class="calc-note" style="font-style:normal">Enter distance and time.</div>`; return; }
+      ? `MAS = distance ÷ time; run a set 1.5–2 km flat-out (should take 5–7 min), correlates r=0.94 with lab MAS (Berthon 1997; Baker).`
+      : `MAS = distance ÷ time; run as far as possible in a fixed 5 min (÷ 300), correlates r=0.94 with lab MAS (Berthon 1997; Baker).`;
+    if(m===null||t===null){ o.innerHTML=`<div class="big">—</div><div class="calc-note" style="font-style:normal">Enter distance and time.</div>`; $("#masZoneWrap").hidden=true; return; }
     const mas=m/t;
     const dur=`${Math.floor(t/60)}:${String(Math.round(t%60)).padStart(2,"0")}`;
     let flag="";
@@ -1392,11 +1499,29 @@ function masCalc(){
       <div class="row"><span>pace / km</span><b>${fmtPace(1000/mas)} /km</b></div>
       <div class="row"><span>trial</span><b>${Math.round(m)} m in ${dur}${isFive?" (5-min)":""}</b></div>
       ${flag}`;
+    // training zones
+    $("#masZoneWrap").hidden=false;
+    const isec=Math.max(1,+$("#masIntSec").value||15);
+    const uLabel = zoneUnit==="kmh"?"km/h" : zoneUnit==="minkm"?"/km" : "m/s";
+    const fmtSpeed = (v)=>{
+      if(zoneUnit==="kmh") return (v*3.6).toFixed(1)+" km/h";
+      if(zoneUnit==="ms")  return v.toFixed(2)+" m/s";
+      return fmtPace(1000/v)+" /km";   // min/km
+    };
+    $("#masZones").innerHTML=`<table class="zone-tbl"><thead><tr><th>Zone</th><th>%MAS</th><th>Speed</th><th>${isec}s dist.</th></tr></thead><tbody>`+
+      MAS_ZONES.map(([z,,lo,hi])=>{
+        const mid=(lo+hi)/2, v=mas*mid/100, distM=v*isec;
+        return `<tr><td>${z}</td><td>${lo}–${hi}%</td><td>${fmtSpeed(v)}</td><td>${Math.round(distM)} m</td></tr>`;
+      }).join("")+`</tbody></table>`;
   };
   function build(){ $("#masInputs").innerHTML = mode==="dist"?distInputs:timeInputs;
     ["masDist","masDistUnit","masMin","masSec"].forEach(id=>{ const el=$("#"+id); if(el){ el.addEventListener("input",calc); el.addEventListener("change",calc);} });
+    const ii=$("#masIntSec"); if(ii) ii.addEventListener("input",calc);
     calc();
   }
+  $("#masUnitSeg").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+    zoneUnit=b.dataset.u; $("#masUnitSeg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); calc();
+  }));
   $("#masMode").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
     mode=b.dataset.m; $("#masMode").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); build();
   }));
@@ -1536,6 +1661,7 @@ function exitEditMode(){
   draft=[]; condSel={system:null,modality:null}; renderDraft();
   $("#sDate").value=dstr(new Date());
   $("#sType").value="Strength"; syncTypeBlocks();
+  if(typeof resetLogChooser==="function") resetLogChooser();
 }
 function editSession(id){
   const s=S.sessions.find(x=>x.id===id); if(!s) return;
@@ -1561,9 +1687,11 @@ function editSession(id){
     const sys=COND.find(c=>c.id===s.cond.system);
     if(sys){ $("#condMod").innerHTML=sys.mods.map(m=>`<option ${m.m===s.cond.modality?"selected":""}>${esc(m.m)}</option>`).join(""); updateGuide(); }
   } else { condSel={system:null,modality:null}; }
-  // jump to Log tab, close drawer if open
+  // jump to Log tab, show the session form directly, close drawer if open
   if(typeof closeDrawer==="function") closeDrawer();
   show("log");
+  showLogForm("session");
+  $("#logHeading").textContent="Edit session";
   window.scrollTo(0,0);
 }
 $("#cancelEdit").addEventListener("click",exitEditMode);
@@ -1750,6 +1878,7 @@ document.getElementById("loadNext").addEventListener("click",()=>{
   loadOffsetDays = Math.max(0, loadOffsetDays - Math.max(1, Math.ceil(loadRangeDays/2)));
   drawLoadChart();
 });
+document.getElementById("ewmaToggle").addEventListener("change",drawLoadChart);
 
 // Init theme on load
 document.getElementById('accentPicker').value = accent;
