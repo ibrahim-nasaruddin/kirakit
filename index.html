@@ -1184,6 +1184,10 @@ function bindGranular(){
 function showInfo(title, bodyHTML){ $("#infoTitle").textContent=title; $("#infoBody").innerHTML=bodyHTML; $("#infoSheet").hidden=false; }
 
 /* ============ calculators ============ */
+// Last calculated MAS (m/s), shared so ASR can pre-fill. Persisted across sessions.
+let lastMAS = (S && S.lastMAS) ? S.lastMAS : null;
+function setLastMAS(v){ lastMAS = v; S.lastMAS = v; persist(); }
+
 function fmtPace(secPerKm){
   if(!isFinite(secPerKm)||secPerKm<=0) return "—";
   const m=Math.floor(secPerKm/60), s=Math.round(secPerKm%60);
@@ -1314,11 +1318,13 @@ function paceCalc(){
 
 function asrCalc(){
   $("#toolTitle").textContent="Anaerobic Speed Reserve";
+  const masPrefill = lastMAS ? `value="${lastMAS}"` : "";
   $("#toolBody").innerHTML=`
     <div class="calc-two">
-      <div class="calc-field"><label>MAS (m/s)</label><input id="asrMas" inputmode="decimal" placeholder="e.g. 4.0"></div>
+      <div class="calc-field"><label>MAS (m/s)</label><input id="asrMas" inputmode="decimal" placeholder="e.g. 4.0" ${masPrefill}></div>
       <div class="calc-field"><label>MSS (m/s)</label><input id="asrMss" inputmode="decimal" placeholder="e.g. 9.0"></div>
     </div>
+    ${lastMAS ? `<p class="calc-note" style="margin-top:0;margin-bottom:6px;color:var(--pine)">MAS pre-filled from your last MAS calculation (${lastMAS} m/s) — edit if needed.</p>` : ""}
     <p class="calc-note" style="margin-top:0;margin-bottom:10px">MAS = aerobic speed (5-min trial ÷ 300); MSS = top sprint speed (fastest flying-sprint split). Both in m/s.</p>
     <div class="calc-out" id="asrOut"></div>
     <div class="calc-field"><label>Target intensity (% ASR)</label><input id="asrPct" inputmode="numeric" value="30" placeholder="e.g. 30"></div>
@@ -1490,6 +1496,7 @@ function masCalc(){
       : `MAS = distance ÷ time; run as far as possible in a fixed 5 min (÷ 300), correlates r=0.94 with lab MAS (Berthon 1997; Baker).`;
     if(m===null||t===null){ o.innerHTML=`<div class="big">—</div><div class="calc-note" style="font-style:normal">Enter distance and time.</div>`; $("#masZoneWrap").hidden=true; return; }
     const mas=m/t;
+    setLastMAS(Math.round(mas*100)/100);
     const dur=`${Math.floor(t/60)}:${String(Math.round(t%60)).padStart(2,"0")}`;
     let flag="";
     if(t<270) flag=`<div class="calc-note" style="font-style:normal;color:var(--warn)">Trial was under ~4.5 min — likely too short, MAS may be overestimated.</div>`;
