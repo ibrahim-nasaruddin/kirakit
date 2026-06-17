@@ -144,7 +144,8 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-2);text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}
 td{padding:9px 6px;border-bottom:1px solid var(--mist)}
 td.r,th.r{text-align:right}
-.del{color:var(--risk);font-size:13px;font-weight:700;padding:4px 6px}
+.del{color:var(--risk);font-size:13px;font-weight:700;padding:4px 6px;display:inline-flex;align-items:center;vertical-align:middle}
+.edit{vertical-align:middle}
 .edit{color:var(--pine);font-size:13px;font-weight:700;padding:4px 6px}
 
 /* big mobile forms */
@@ -969,7 +970,7 @@ function renderRecent(){
       const detail = s.exercises ? `${esc(s.type)}<br><small style="color:var(--ink-2)">${s.exercises.map(e=>esc(e.name.replace(/^(Barbell|Bodyweight|Dumbbell) /,""))).slice(0,3).join(", ")}${s.exercises.length>3?"…":""} · ${fmt(s.ext)} kg</small>`
         : s.cond ? `${esc(s.type)}<br><small style="color:var(--ink-2)">${esc((COND.find(c=>c.id===s.cond.system)||{label:s.cond.system}).label)} · ${esc(s.cond.modality||"")}</small>`
         : `${esc(s.type)}<br><small style="color:var(--ink-2)">${s.duration} min · RPE ${s.rpe}</small>`;
-      return `<tr><td>${s.date.slice(5)}</td><td>${detail}</td><td class="r">${s.duration*s.rpe}</td><td class="r" style="white-space:nowrap"><button class="edit" data-id="${s.id}">Edit</button> <button class="del" data-id="${s.id}">Delete</button></td></tr>`;
+      return `<tr><td>${s.date.slice(5)}</td><td>${detail}</td><td class="r">${s.duration*s.rpe}</td><td class="r" style="white-space:nowrap"><button class="edit" data-id="${s.id}">Edit</button> <button class="del" data-id="${s.id}" aria-label="Delete session" title="Delete"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td></tr>`;
     }).join("")+`</tbody>`;
   t.querySelectorAll(".edit").forEach(b=>b.addEventListener("click",()=>editSession(b.dataset.id)));
   t.querySelectorAll(".del").forEach(b=>b.addEventListener("click",()=>{ S.sessions=S.sessions.filter(x=>x.id!==b.dataset.id); persist(); render(); toast("Deleted","ok"); }));
