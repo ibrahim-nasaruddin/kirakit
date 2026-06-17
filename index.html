@@ -454,11 +454,13 @@ footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:
   <section id="v-calc">
     <h2 style="margin-top:0">Calculators</h2>
     <div class="panel">
+      <button type="button" class="toolrow" data-tool="e1rm"><b>Estimated 1RM</b><small>Weight × reps (1–10) → estimated 1-rep max</small><span>›</span></button>
+      <button type="button" class="toolrow" data-tool="mas"><b>Maximal Aerobic Speed (MAS)</b><small>Time-trial distance & time → MAS</small><span>›</span></button>
       <button type="button" class="toolrow" data-tool="pace"><b>Pace / Speed calculator</b><small>Distance + time → m/s, km/h, pace</small><span>›</span></button>
       <button type="button" class="toolrow" data-tool="asr"><b>Anaerobic Speed Reserve</b><small>MAS, MSS → ASR and %ASR target paces</small><span>›</span></button>
       <button type="button" class="toolrow" data-tool="hrr"><b>Heart-rate zones (Karvonen)</b><small>HRR → target heart-rate zones</small><span>›</span></button>
     </div>
-    <p class="sub">All formulas are referenced to peer-reviewed sources — see References &amp; Methodology under More.</p>
+    <p class="sub">All formulas are referenced to peer-reviewed sources — see References &amp; Methodology in the menu.</p>
   </section>
 
   <section id="v-more" class="drawer-content">
@@ -1300,8 +1302,110 @@ function hrrCalc(){
   $("#hrMode").addEventListener("change",calc); calc();
 }
 
+// Estimated 1RM — Epley & Brzycki, validated for reps ≤10 (load-rep relationship is
+// near-linear ≤10 reps, exponential above; best accuracy 3–6 reps ~3–7% error,
+// 2–10 reps ~5–10%; JSCR 2016 meta-analysis; Brzycki 1993; Epley 1985; LeSuer 1997).
+function e1rmCalc(){
+  $("#toolTitle").textContent="Estimated 1RM";
+  $("#toolBody").innerHTML=`
+    <div class="calc-two">
+      <div class="calc-field"><label>Weight lifted (kg)</label><input id="e1Load" inputmode="decimal" placeholder="e.g. 100"></div>
+      <div class="calc-field"><label>Reps to failure (1–10)</label><input id="e1Reps" inputmode="numeric" placeholder="e.g. 5"></div>
+    </div>
+    <div class="calc-out" id="e1Out"></div>
+    <div id="e1Table"></div>
+    <p class="calc-note">Epley: 1RM = w × (1 + reps/30). Brzycki: 1RM = w ÷ (1.0278 − 0.0278 × reps). Both are validated only for sets of <b>≤10 reps</b> — the load–rep relationship is near-linear there but becomes exponential beyond 10, so higher-rep sets are not estimated. Accuracy is best at 3–6 reps (~3–7% error) and good across 2–10 reps (~5–10%) (JSCR 2016 meta-analysis). Epley and Brzycki agree exactly at 10 reps; below that Epley sits slightly higher. The two differ by exercise and rep range, so the average is shown as a sensible default.</p>`;
+  const epley=(w,r)=> w*(1+r/30);
+  const brzycki=(w,r)=> w/(1.0278-0.0278*r);
+  const calc=()=>{
+    const w=+$("#e1Load").value, r=+$("#e1Reps").value;
+    const o=$("#e1Out"), tbl=$("#e1Table");
+    if(!(w>0)||!(r>=1)){ o.innerHTML=`<div class="big">—</div><div class="calc-note" style="font-style:normal">Enter weight and reps (1–10).</div>`; tbl.innerHTML=""; return; }
+    if(r>10){ o.innerHTML=`<div class="big">—</div><div class="calc-note" style="font-style:normal">Max 10 reps — estimates above 10 reps are not reliable.</div>`; tbl.innerHTML=""; return; }
+    if(r===1){ o.innerHTML=`<div class="big">${w} <small>kg</small></div><div class="calc-note" style="font-style:normal">1 rep is already your true 1RM.</div>`; tbl.innerHTML=""; return; }
+    const e=epley(w,r), b=brzycki(w,r), avg=(e+b)/2;
+    const band = (r>=3&&r<=6) ? "±3–7% (best range)" : "±5–10%";
+    o.innerHTML=`<div class="big">${Math.round(avg*10)/10} <small>kg est. 1RM</small></div>
+      <div class="calc-note" style="font-style:normal">Average of Epley & Brzycki · expected error ${band}</div>`;
+    tbl.innerHTML=`<table class="zone-tbl"><thead><tr><th>Method</th><th>Est. 1RM</th><th>~% of 1RM lifted</th></tr></thead><tbody>
+      <tr><td>Epley</td><td>${Math.round(e*10)/10} kg</td><td>${Math.round(w/e*100)}%</td></tr>
+      <tr><td>Brzycki</td><td>${Math.round(b*10)/10} kg</td><td>${Math.round(w/b*100)}%</td></tr>
+      <tr><td>Average</td><td>${Math.round(avg*10)/10} kg</td><td>${Math.round(w/avg*100)}%</td></tr>
+    </tbody></table>`;
+  };
+  ["e1Load","e1Reps"].forEach(id=>$("#"+id).addEventListener("input",calc)); calc();
+}
+
+// MAS — distance ÷ time. 5-min time trial (distance ÷ 300) correlates r=0.94 with
+// lab MAS; set-distance trials (1.5–2 km) should take 5–7 min (Baker; World Rugby;
+// TopEndSports; SimpliFaster).
+function masCalc(){
+  $("#toolTitle").textContent="Maximal Aerobic Speed";
+  $("#toolBody").innerHTML=`
+    <div class="calc-field"><label>Input method</label>
+      <div class="seg" id="masMode">
+        <button type="button" data-m="dist" aria-pressed="true">Set-distance trial</button>
+        <button type="button" data-m="time" aria-pressed="false">Set-time trial</button>
+      </div>
+    </div>
+    <div id="masInputs"></div>
+    <div class="calc-out" id="masOut"></div>
+    <p class="calc-note" id="masNote"></p>`;
+  let mode="dist";
+  const distInputs=`
+    <div class="calc-field"><label>Distance covered</label>
+      <div class="calc-two">
+        <input id="masDist" inputmode="decimal" placeholder="e.g. 1500">
+        <select id="masDistUnit"><option value="m">metres</option><option value="km">km</option></select>
+      </div>
+    </div>
+    <div class="calc-field"><label>Time taken</label>
+      <div class="calc-two"><input id="masMin" inputmode="numeric" placeholder="Mins"><input id="masSec" inputmode="numeric" placeholder="Secs"></div>
+    </div>`;
+  const timeInputs=`
+    <div class="calc-field"><label>Trial duration</label>
+      <div class="calc-two"><input id="masMin" inputmode="numeric" placeholder="Mins" value="5"><input id="masSec" inputmode="numeric" placeholder="Secs" value="0"></div>
+    </div>
+    <div class="calc-field"><label>Distance covered</label>
+      <div class="calc-two">
+        <input id="masDist" inputmode="decimal" placeholder="e.g. 1500">
+        <select id="masDistUnit"><option value="m">metres</option><option value="km">km</option></select>
+      </div>
+    </div>`;
+  const metres=()=>{ const d=+$("#masDist").value, u=$("#masDistUnit").value; return d>0?(u==="km"?d*1000:d):null; };
+  const seconds=()=>{ const m=+$("#masMin").value||0, s=+$("#masSec").value||0; const t=m*60+s; return t>0?t:null; };
+  const calc=()=>{
+    const m=metres(), t=seconds();
+    const o=$("#masOut"), note=$("#masNote");
+    const isFive = t!==null && Math.abs(t-300)<=1;
+    note.innerHTML = mode==="dist"
+      ? `MAS (m/s) = distance ÷ time. Run a set distance (1.5–2 km) flat-out on a flat course or track; it should take <b>5–7 min</b>. The 5-min variant (distance ÷ 300) correlates r=0.94 with lab-measured MAS.`
+      : `MAS (m/s) = distance ÷ time. Run as far as possible in a fixed time (classically <b>5 min</b>); MAS = distance ÷ 300. This 5-min time trial correlates r=0.94 with lab-measured MAS.`;
+    if(m===null||t===null){ o.innerHTML=`<div class="big">—</div><div class="calc-note" style="font-style:normal">Enter distance and time.</div>`; return; }
+    const mas=m/t;
+    const dur=`${Math.floor(t/60)}:${String(Math.round(t%60)).padStart(2,"0")}`;
+    let flag="";
+    if(t<270) flag=`<div class="calc-note" style="font-style:normal;color:var(--warn)">Trial was under ~4.5 min — likely too short, MAS may be overestimated.</div>`;
+    else if(t>440) flag=`<div class="calc-note" style="font-style:normal;color:var(--warn)">Trial was over ~7.5 min — likely too long, MAS may be underestimated.</div>`;
+    o.innerHTML=`<div class="big">${mas.toFixed(2)} <small>m/s MAS</small></div>
+      <div class="row"><span>km / hour</span><b>${(mas*3.6).toFixed(2)} km/h</b></div>
+      <div class="row"><span>pace / km</span><b>${fmtPace(1000/mas)} /km</b></div>
+      <div class="row"><span>trial</span><b>${Math.round(m)} m in ${dur}${isFive?" (5-min)":""}</b></div>
+      ${flag}`;
+  };
+  function build(){ $("#masInputs").innerHTML = mode==="dist"?distInputs:timeInputs;
+    ["masDist","masDistUnit","masMin","masSec"].forEach(id=>{ const el=$("#"+id); if(el){ el.addEventListener("input",calc); el.addEventListener("change",calc);} });
+    calc();
+  }
+  $("#masMode").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+    mode=b.dataset.m; $("#masMode").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); build();
+  }));
+  build();
+}
+
 function openTool(which){
   if(which==="pace") paceCalc(); else if(which==="asr") asrCalc(); else if(which==="hrr") hrrCalc();
+  else if(which==="e1rm") e1rmCalc(); else if(which==="mas") masCalc();
   $("#toolSheet").hidden=false;
 }
 function showSystemInfo(){
