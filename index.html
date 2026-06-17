@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Training Log">
+<meta name="apple-mobile-web-app-title" content="KiraKit">
 <meta name="theme-color" content="#0e4a42">
-<title>Solo Training Log</title>
+<title>KiraKit</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root{
@@ -304,7 +304,7 @@ footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:
 <header>
   <div class="who">
     <input id="athName" placeholder="Your name" aria-label="Your name" maxlength="40">
-    <span id="sportLine">Solo training log</span>
+    <span id="sportLine">KiraKit</span>
   </div>
   <button class="hambtn" id="menuOpen" aria-label="Menu">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
@@ -716,7 +716,7 @@ $("#drawerBackdrop").addEventListener("click",closeDrawer);
 
 function render(){
   $("#athName").value=S.name||"";
-  $("#sportLine").textContent=S.sport||"Solo training log";
+  $("#sportLine").textContent=S.sport||"KiraKit";
   renderBanner();
   if(view==="today") renderToday();
   if(view==="tests") renderTests();
@@ -1417,7 +1417,7 @@ function update1rmHint(){
 }
 $("#tVal").addEventListener("input",update1rmHint);
 $("#tReps").addEventListener("input",update1rmHint);
-$("#athName").addEventListener("input",e=>{ S.name=e.target.value; persist(); $("#sportLine").textContent=S.sport||"Solo training log"; });
+$("#athName").addEventListener("input",e=>{ S.name=e.target.value; persist(); $("#sportLine").textContent=S.sport||"KiraKit"; });
 
 let editingId = null;
 function exitEditMode(){
@@ -1571,7 +1571,7 @@ $("#btnSample").addEventListener("click",()=>{
   }
   for(const wk of [4,2,0]){ tests.push({id:uid(),date:addDays(today,-7*wk),test:"CMJ",value:Math.round((33+(4-wk)/4*1.5+(rnd()*1.4-0.7))*10)/10,unit:"cm"});
     tests.push({id:uid(),date:addDays(today,-7*wk),test:"10m Sprint",value:Math.round((1.85-(4-wk)/4*0.03+(rnd()*0.04-0.02))*100)/100,unit:"s"}); }
-  S={ name:"Sample Athlete",sport:"Solo training log",baseline:33,sessions,wellness,tests,lastExport:Date.now(),favs:["Barbell Back Squat","Pull-Up"], isDark:S.isDark, accent:S.accent };
+  S={ name:"Sample Athlete",sport:"",baseline:33,sessions,wellness,tests,lastExport:Date.now(),favs:["Barbell Back Squat","Pull-Up"], isDark:S.isDark, accent:S.accent };
   persist(); closeDrawer(); show("today"); toast("Sample data loaded","ok");
 });
 
