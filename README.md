@@ -11,6 +11,8 @@ A privacy-first training monitor for strength, conditioning, and hybrid athletes
 **v0.4 — current**
 - **Two new calculators:** standalone **Estimated 1RM** (Epley & Brzycki, validated for ≤10 reps, with accuracy bands) and **Maximal Aerobic Speed (MAS)** (set-distance or set-time trial input).
 - **MAS training zones** — once MAS is calculated, a collapsible table gives the speed and per-interval running distance for nine %MAS training zones (Continuous through Anaerobic), based on Dan Baker's field-sport conditioning framework. Includes an adjustable interval duration and a km/h · min/km · m/s unit toggle.
+- **Calculators now carry values across** — a calculated MAS is remembered and pre-filled into the Anaerobic Speed Reserve calculator.
+- **Conditioning → MAS bridge** — when logging an aerobic or supra-MAS conditioning session, a link jumps straight to the MAS calculator to get the exact paces and interval distances for that work.
 - **EWMA trend line** — an optional, toggleable exponentially-weighted moving average overlay on the load chart (Williams 2017; Murray 2017), smoothing day-to-day noise to show the underlying load direction.
 - **Log tab redesigned as a chooser** — pick Training session, Daily check-in, or Test result first, then only the relevant fields appear, reducing on-screen clutter.
 - Calculator descriptions condensed to single lines; the delete control in recent sessions is now a trash-can icon.
@@ -39,7 +41,7 @@ A privacy-first training monitor for strength, conditioning, and hybrid athletes
 - **Training-load monitoring** — every session reduces to a common internal load (duration × RPE, the session-RPE method), so strength and conditioning are directly comparable. Tracks load trend against your own rolling baseline, plus monotony, strain, and individualised z-scores.
 - **Readiness & wellness** — daily word-anchored check-ins that sharpen the load signals.
 - **Testing** — log and trend field tests (CMJ, sprints, change-of-direction, and more). Named 1RM tests include an automatic estimated-1RM converter (multi-rep sets up to 10 reps, Epley). Includes a lift-progression chart and ASCA testing-protocol references.
-- **Calculators** (dedicated tab) — pace/speed converter (solve for speed, distance, or time), Anaerobic Speed Reserve, and Karvonen heart-rate zones. **`[New in v0.4]`** Plus a standalone **Estimated 1RM** calculator and a **Maximal Aerobic Speed (MAS)** calculator with a collapsible %MAS training-zone table (speeds and per-interval distances, with a km/h · min/km · m/s unit toggle).
+- **Calculators** (dedicated tab) — pace/speed converter (solve for speed, distance, or time), Anaerobic Speed Reserve, and Karvonen heart-rate zones. **`[New in v0.4]`** Plus a standalone **Estimated 1RM** calculator and a **Maximal Aerobic Speed (MAS)** calculator with a collapsible %MAS training-zone table (speeds and per-interval distances, with a km/h · min/km · m/s unit toggle). A calculated MAS carries over into the ASR calculator, and aerobic conditioning sessions link directly to the MAS calculator for prescribing paces.
 - **Interactive load chart** — view 7 days to 1 year, scroll back through history, with per-point detail. **`[New in v0.4]`** An optional **EWMA trend line** can be toggled on to smooth day-to-day noise and show the underlying load direction.
 - **Themes** — light/dark mode and a custom accent colour.
 
