@@ -167,6 +167,21 @@ td.r,th.r{text-align:right}
 .ghost{width:100%;background:var(--panel);border:1.5px solid var(--line);border-radius:13px;padding:13px;font-weight:700;margin-top:10px;color:var(--ink)}
 
 .seglabel{font-size:12px;color:var(--ink-2);font-weight:700;display:flex;justify-content:space-between;margin-top:4px}
+.rpe-nudge{font-size:12.5px;color:var(--ink-2);line-height:1.45;margin-top:10px;background:var(--hall);border-radius:9px;padding:9px 11px}
+.rpe-nudge b{color:var(--ink)}
+
+/* first-run welcome / intent screen */
+.welcome-screen{display:none}
+.welcome-screen.on{display:flex;position:fixed;inset:0;z-index:50;background:var(--hall);overflow-y:auto;flex-direction:column;align-items:center;justify-content:center;padding:32px 22px calc(40px + var(--safe-b))}
+.welcome-inner{width:100%;max-width:440px;display:flex;flex-direction:column}
+.welcome-logo{font-size:34px;font-weight:800;letter-spacing:-.02em;color:var(--pine);text-align:center}
+.welcome-sub{font-size:15px;color:var(--ink-2);text-align:center;margin:8px 0 28px;line-height:1.5}
+.welcome-actions{display:flex;flex-direction:column;gap:12px}
+.welcome-card{text-align:left;padding:18px 18px;border:1.5px solid var(--line);border-radius:16px;background:var(--panel);display:flex;flex-direction:column;gap:3px}
+.welcome-card:active{background:var(--mist)}
+.welcome-card b{font-size:16px;font-weight:800}
+.welcome-card small{font-size:13px;color:var(--ink-2);line-height:1.35}
+.welcome-skip{margin-top:22px;color:var(--ink-2);font-size:13.5px;font-weight:600;text-decoration:underline;align-self:center}
 
 /* granular logging */
 .exsearch{position:relative}
@@ -324,6 +339,28 @@ footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:
 </header>
 
 <main>
+  <section id="v-welcome" class="welcome-screen">
+    <div class="welcome-inner">
+      <div class="welcome-logo">KiraKit</div>
+      <p class="welcome-sub">Your private training-load monitor. Everything stays on your device.</p>
+      <div class="welcome-actions">
+        <button type="button" class="welcome-card" data-go="session">
+          <b>Log your first session</b>
+          <small>Strength, conditioning, or a quick check-in</small>
+        </button>
+        <button type="button" class="welcome-card" data-go="test">
+          <b>Record a test result</b>
+          <small>A jump, sprint, lift, or field test to track over time</small>
+        </button>
+        <button type="button" class="welcome-card" data-go="calc">
+          <b>Open the calculators</b>
+          <small>1RM, MAS, pace, heart-rate zones, and more</small>
+        </button>
+      </div>
+      <button type="button" class="welcome-skip" id="welcomeSample">or explore with sample data first</button>
+    </div>
+  </section>
+
   <section id="v-today" class="on">
     <div id="iosInstall" class="installbanner" hidden>
       <button class="installclose" id="iosInstallClose" aria-label="Dismiss">×</button>
@@ -348,6 +385,7 @@ footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:
         <div class="scale"><span>−50%</span><span>steady</span><span>+30%</span><span>+50%+</span></div>
       </div>
       <div class="cap" id="trendCap" style="margin-top:10px"></div>
+      <button type="button" class="primary" id="heroLog" style="margin-top:14px">+ Log a session</button>
     </div>
 
     <div class="mini" id="miniStats"></div>
@@ -430,6 +468,7 @@ footer{max-width:560px;margin:0 auto;padding:8px 18px 20px;font-size:12px;color:
         <label>RPE — how hard was it? <span id="rpeVal" style="color:var(--pine);font-weight:800;text-transform:none"></span></label>
         <div class="seg" id="rpeSeg"></div>
         <div class="seglabel"><span>1 easy</span><span>10 max</span></div>
+        <p class="rpe-nudge">💡 For the most accurate load, rate the session <b>~30 min after finishing</b> — RPE feels lower right at the end.</p>
       </div>
       <button class="primary" id="addSession">Add session</button>
     </div>
@@ -721,14 +760,27 @@ const COND=[{"id": "Phosphagen_Power", "label": "Phosphagen Power", "base": "Pho
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=(n,dp=0)=> n===null||n===undefined||Number.isNaN(n)?"—":n.toLocaleString(undefined,{minimumFractionDigits:dp,maximumFractionDigits:dp});
-function toast(msg,kind){ const t=$("#toast"); t.textContent=msg; t.className="toast show "+(kind||"ok"); clearTimeout(t._h); t._h=setTimeout(()=>t.className="toast",2200); }
+function toast(msg,kind){ const t=$("#toast"); t.innerHTML=esc(msg); t.className="toast show "+(kind||"ok"); t.style.pointerEvents="none"; clearTimeout(t._h); t._h=setTimeout(()=>t.className="toast",2200); }
+function toastUndo(msg, onUndo){
+  const t=$("#toast");
+  t.innerHTML=`<span>${esc(msg)}</span>`;
+  const btn=document.createElement("button");
+  btn.textContent="Undo";
+  btn.style.cssText="background:transparent;color:#5fd0a8;font-weight:800;font-size:15px;padding:0 0 0 6px;text-decoration:underline";
+  t.appendChild(btn);
+  t.className="toast show ok"; t.style.pointerEvents="auto";
+  clearTimeout(t._h);
+  const close=()=>{ t.className="toast"; t.style.pointerEvents="none"; };
+  btn.addEventListener("click",()=>{ onUndo(); close(); });
+  t._h=setTimeout(close, 5000); // longer window so undo is reachable
+}
 const uid=()=>Math.random().toString(36).slice(2,10);
 
 /* ============ views ============ */
 let view="today";
 function show(v){
   view=v;
-  document.querySelectorAll("main section").forEach(s=>{ if(s.id!=="v-more") s.classList.toggle("on", s.id==="v-"+v); });
+  document.querySelectorAll("main section").forEach(s=>{ if(s.id!=="v-more" && s.id!=="v-welcome") s.classList.toggle("on", s.id==="v-"+v); });
   document.querySelectorAll(".tabbar button").forEach(b=>b.setAttribute("aria-current", b.dataset.v===v));
   document.querySelectorAll(".tabbar .ic").forEach(ic=>ic.setAttribute("stroke", ic.closest("button").dataset.v===v?"var(--pine)":"var(--ink-2)"));
   window.scrollTo(0,0);
@@ -738,6 +790,26 @@ document.querySelectorAll(".tabbar button").forEach(b=>b.addEventListener("click
   if(b.dataset.v==="log" && !editingId) resetLogChooser();
   show(b.dataset.v);
 }));
+
+/* ============ first-run welcome screen ============ */
+function hasAnyData(){ return S.sessions.length || S.wellness.length || S.tests.length; }
+function showWelcome(){
+  $("#v-welcome").classList.add("on");
+  document.body.style.overflow="hidden";
+}
+function hideWelcome(){
+  $("#v-welcome").classList.remove("on");
+  document.body.style.overflow="";
+}
+function maybeShowWelcome(){ if(!hasAnyData()) showWelcome(); else hideWelcome(); }
+document.querySelectorAll(".welcome-card").forEach(c=>c.addEventListener("click",()=>{
+  const go=c.dataset.go;
+  hideWelcome();
+  if(go==="session"){ show("log"); resetLogChooser(); showLogForm("session"); }
+  else if(go==="test"){ show("log"); resetLogChooser(); showLogForm("test"); }
+  else if(go==="calc"){ show("calc"); }
+}));
+$("#welcomeSample").addEventListener("click",()=>{ hideWelcome(); $("#btnSample").click(); });
 
 /* ============ Log chooser ============ */
 function resetLogChooser(){
@@ -1055,7 +1127,14 @@ function renderRecent(){
       return `<tr><td>${s.date.slice(5)}</td><td>${detail}</td><td class="r">${s.duration*s.rpe}</td><td class="r" style="white-space:nowrap"><button class="edit" data-id="${s.id}">Edit</button> <button class="del" data-id="${s.id}" aria-label="Delete session" title="Delete"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td></tr>`;
     }).join("")+`</tbody>`;
   t.querySelectorAll(".edit").forEach(b=>b.addEventListener("click",()=>editSession(b.dataset.id)));
-  t.querySelectorAll(".del").forEach(b=>b.addEventListener("click",()=>{ S.sessions=S.sessions.filter(x=>x.id!==b.dataset.id); persist(); render(); toast("Deleted","ok"); }));
+  t.querySelectorAll(".del").forEach(b=>b.addEventListener("click",()=>{
+    const removed=S.sessions.find(x=>x.id===b.dataset.id);
+    const idx=S.sessions.findIndex(x=>x.id===b.dataset.id);
+    S.sessions=S.sessions.filter(x=>x.id!==b.dataset.id); persist(); render();
+    toastUndo("Session deleted", ()=>{
+      if(removed){ S.sessions.splice(Math.min(idx,S.sessions.length),0,removed); persist(); render(); toast("Restored","ok"); }
+    });
+  }));
 }
 
 const FAQ=[
@@ -1782,12 +1861,12 @@ $("#fileInput").addEventListener("change",e=>{
   const f=e.target.files[0]; if(!f) return; const r=new FileReader();
   r.onload=()=>{ try{ const j=JSON.parse(r.result); if(!Array.isArray(j.sessions)) throw 0;
     S={ name:j.name||"",sport:j.sport||"",baseline:j.baseline??null,sessions:j.sessions,wellness:j.wellness||[],tests:j.tests||[],lastExport:j.lastExport||Date.now(),favs:j.favs||[], isDark:j.isDark||false, accent:j.accent||"#16655a" };
-    persist(); applyTheme(); render(); toast("Training file loaded","ok"); }
+    persist(); applyTheme(); hideWelcome(); render(); toast("Training file loaded","ok"); }
     catch(_){ toast("Not a training file","err"); } };
   r.readAsText(f); e.target.value="";
 });
 $("#btnClear").addEventListener("click",()=>{ if(!confirm("Clear everything on this device? Save a file first if unsure.")) return;
-  S={ name:"",sport:"",baseline:null,sessions:[],wellness:[],tests:[],lastExport:null,favs:[], isDark:false, accent:"#16655a" }; persist(); applyTheme(); buildPickers(); closeDrawer(); show("today"); toast("Cleared","ok"); });
+  S={ name:"",sport:"",baseline:null,sessions:[],wellness:[],tests:[],lastExport:null,favs:[], isDark:false, accent:"#16655a" }; persist(); applyTheme(); buildPickers(); closeDrawer(); show("today"); maybeShowWelcome(); toast("Cleared","ok"); });
 
 /* ============ sample ============ */
 $("#btnSample").addEventListener("click",()=>{
@@ -1820,7 +1899,7 @@ $("#btnSample").addEventListener("click",()=>{
   for(const wk of [4,2,0]){ tests.push({id:uid(),date:addDays(today,-7*wk),test:"CMJ",value:Math.round((33+(4-wk)/4*1.5+(rnd()*1.4-0.7))*10)/10,unit:"cm"});
     tests.push({id:uid(),date:addDays(today,-7*wk),test:"10m Sprint",value:Math.round((1.85-(4-wk)/4*0.03+(rnd()*0.04-0.02))*100)/100,unit:"s"}); }
   S={ name:"Sample Athlete",sport:"",baseline:33,sessions,wellness,tests,lastExport:Date.now(),favs:["Barbell Back Squat","Pull-Up"], isDark:S.isDark, accent:S.accent };
-  persist(); closeDrawer(); show("today"); toast("Sample data loaded","ok");
+  persist(); closeDrawer(); hideWelcome(); show("today"); toast("Sample data loaded","ok");
 });
 
 /* ============ Theme Manager ============ */
@@ -1878,6 +1957,8 @@ buildPickers();
 sync1rmUI();
 bindGranular();
 $("#liftPick").addEventListener("change",()=>drawLift($("#liftPick").value));
+$("#heroLog").addEventListener("click",()=>{ resetLogChooser(); show("log"); });
+maybeShowWelcome();
 
 document.querySelectorAll("#rangeSeg button").forEach(b=>b.addEventListener("click",()=>{
   loadRangeDays = +b.dataset.d;
